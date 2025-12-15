@@ -1,15 +1,16 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  CreditCard, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  FileText,
+  CreditCard,
+  BarChart3,
+  Settings,
   Users,
   Shield,
   LogOut,
-  PlusCircle
+  PlusCircle,
+  UserCircle
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Paiements', href: '/payments', icon: CreditCard, permission: 'payments.view' },
   { name: 'Rapports', href: '/reports', icon: BarChart3, permission: 'reports.view' },
   { name: 'Utilisateurs', href: '/users', icon: Users, permission: 'users.view' },
+  { name: 'Intervenants', href: '/participants', icon: UserCircle, permission: 'users.view' }, // Added new navigation item
   { name: 'Administration', href: '/admin', icon: Settings, permission: '*' },
 ];
 
@@ -29,7 +31,7 @@ export const Sidebar: React.FC = () => {
   const { user, logout, hasPermission } = useAuth();
   const location = useLocation();
 
-  const filteredNavigation = navigation.filter(item => 
+  const filteredNavigation = navigation.filter(item =>
     hasPermission(item.permission) || hasPermission('*')
   );
 
@@ -42,16 +44,16 @@ export const Sidebar: React.FC = () => {
             <Shield className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-sidebar-foreground">AssurFlow</h1>
-            <p className="text-xs text-sidebar-foreground/60">Gestion sinistres</p>
+            <h1 className="text-lg font-bold text-sidebar-foreground">NSIA</h1>
+            <p className="text-xs text-sidebar-foreground/60">Sinistre App</p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 space-y-1 px-3 py-4">
           {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href || 
-                           (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
+            const isActive = location.pathname === item.href ||
+              (item.href !== '/dashboard' && location.pathname.startsWith(item.href));
             return (
               <NavLink
                 key={item.name}

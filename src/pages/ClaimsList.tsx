@@ -32,18 +32,26 @@ const ClaimsList: React.FC = () => {
   const { claims } = useClaims();
   const { hasPermission } = useAuth();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<ClaimStatus | 'all'>('all');
+  const [typeFilter, setTypeFilter] = useState<ClaimType | 'all'>('all');
+
+  const formatGNF = (amount: number) => {
+    return new Intl.NumberFormat('fr-GN', {
+      style: 'currency',
+      currency: 'GNF',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredClaims = useMemo(() => {
     return claims.filter((claim) => {
-      const matchesSearch = 
+      const matchesSearch =
         claim.id.toLowerCase().includes(search.toLowerCase()) ||
         claim.policyNumber.toLowerCase().includes(search.toLowerCase()) ||
         claim.description.toLowerCase().includes(search.toLowerCase()) ||
         claim.declarant.name.toLowerCase().includes(search.toLowerCase());
-      
+
       const matchesStatus = statusFilter === 'all' || claim.status === statusFilter;
       const matchesType = typeFilter === 'all' || claim.type === typeFilter;
 
@@ -53,8 +61,8 @@ const ClaimsList: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <Header 
-        title="Sinistres" 
+      <Header
+        title="Sinistres"
         subtitle={`${filteredClaims.length} dossier(s) trouvé(s)`}
       />
 
@@ -171,7 +179,7 @@ const ClaimsList: React.FC = () => {
                       {format(claim.dateIncident, 'dd/MM/yyyy', { locale: fr })}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {claim.estimatedAmount?.toLocaleString('fr-FR')} €
+                      {formatGNF(claim.estimatedAmount || 0)}
                     </TableCell>
                   </TableRow>
                 ))}

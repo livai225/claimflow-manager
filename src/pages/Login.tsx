@@ -22,22 +22,22 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     const success = await login(email, password);
-    
+
     if (success) {
       navigate('/dashboard');
     } else {
       setError('Identifiants incorrects. Utilisez le mot de passe: demo123');
     }
-    
+
     setIsLoading(false);
   };
 
   const demoAccounts = [
-    { email: 'admin@assurance.fr', role: 'Administrateur' },
-    { email: 'gestionnaire@assurance.fr', role: 'Gestionnaire' },
-    { email: 'expert@assurance.fr', role: 'Expert' },
-    { email: 'superviseur@assurance.fr', role: 'Superviseur' },
-    { email: 'comptable@assurance.fr', role: 'Comptabilité' },
+    { email: 'admin@assurflow.gn', role: 'Administrateur' },
+    { email: 'gestionnaire@assurflow.gn', role: 'Gestionnaire' },
+    { email: 'expert@assurflow.gn', role: 'Expert' },
+    { email: 'superviseur@assurflow.gn', role: 'Superviseur' },
+    { email: 'comptable@assurflow.gn', role: 'Comptabilité' },
     { email: 'client@email.fr', role: 'Assuré' },
   ];
 
@@ -49,8 +49,8 @@ const Login: React.FC = () => {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-primary mb-4">
             <Shield className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">AssurFlow</h1>
-          <p className="text-muted-foreground mt-2">Gestion des sinistres</p>
+          <h1 className="text-3xl font-bold text-foreground">NSIA SINISTRE APP</h1>
+          <p className="text-muted-foreground">Gestion des sinistres en Guinée</p>
         </div>
 
         <Card className="shadow-xl border-border/50">

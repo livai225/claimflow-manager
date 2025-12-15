@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calendar, MapPin, User, FileText, ArrowRight } from 'lucide-react';
-import { Claim, TYPE_CONFIG } from '@/types/claims';
+import { Claim, TYPE_CONFIG, STATUS_CONFIG } from '@/types/claims';
 import { StatusBadge } from './StatusBadge';
 import { Card } from '@/components/ui/card';
 import { format } from 'date-fns';
@@ -12,7 +12,16 @@ interface ClaimCardProps {
 }
 
 export const ClaimCard: React.FC<ClaimCardProps> = ({ claim }) => {
+  const statusConfig = STATUS_CONFIG[claim.status];
   const typeConfig = TYPE_CONFIG[claim.type];
+
+  const formatGNF = (amount: number) => {
+    return new Intl.NumberFormat('fr-GN', {
+      style: 'currency',
+      currency: 'GNF',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
   const TypeIcon = typeConfig.icon;
 
   return (
@@ -62,7 +71,7 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({ claim }) => {
               <p className="text-sm">
                 <span className="text-muted-foreground">Estimé:</span>{' '}
                 <span className="font-semibold text-foreground">
-                  {claim.estimatedAmount.toLocaleString('fr-FR')} €
+                  {formatGNF(claim.estimatedAmount)}
                 </span>
               </p>
             )}

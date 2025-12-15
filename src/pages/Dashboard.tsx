@@ -13,6 +13,14 @@ const Dashboard: React.FC = () => {
   const { claims, stats } = useClaims();
   const { user } = useAuth();
 
+  const formatGNF = (amount: number) => {
+    return new Intl.NumberFormat('fr-GN', {
+      style: 'currency',
+      currency: 'GNF',
+      minimumFractionDigits: 0,
+    }).format(amount);
+  };
+
   const recentClaims = claims.slice(0, 4);
 
   const statusData = Object.entries(stats.claimsByStatus)
@@ -32,8 +40,8 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      <Header 
-        title={`Bonjour, ${user?.name?.split(' ')[0]}`} 
+      <Header
+        title={`Bonjour, ${user?.name?.split(' ')[0]}`}
         subtitle="Voici un aperçu de l'activité sinistres"
       />
 
@@ -65,7 +73,7 @@ const Dashboard: React.FC = () => {
           />
           <StatsCard
             title="Montant indemnisé"
-            value={`${stats.totalPaid.toLocaleString('fr-FR')} €`}
+            value={formatGNF(stats.totalPaid)}
             subtitle="Total des paiements"
             icon={Euro}
           />
@@ -95,9 +103,9 @@ const Dashboard: React.FC = () => {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
@@ -108,8 +116,8 @@ const Dashboard: React.FC = () => {
               <div className="flex flex-wrap gap-3 justify-center mt-4">
                 {statusData.map((item, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <div 
-                      className="h-3 w-3 rounded-full" 
+                    <div
+                      className="h-3 w-3 rounded-full"
                       style={{ backgroundColor: item.color }}
                     />
                     <span className="text-sm text-muted-foreground">
@@ -132,16 +140,16 @@ const Dashboard: React.FC = () => {
                   <BarChart data={typeData} layout="vertical">
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px'
                       }}
                     />
-                    <Bar 
-                      dataKey="value" 
-                      fill="hsl(var(--primary))" 
+                    <Bar
+                      dataKey="value"
+                      fill="hsl(var(--primary))"
                       radius={[0, 4, 4, 0]}
                     />
                   </BarChart>
@@ -181,8 +189,8 @@ const Dashboard: React.FC = () => {
                 <AlertTriangle className="h-6 w-6 text-status-warning" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Dossiers en attente</p>
-                <p className="text-2xl font-bold">{stats.claimsByStatus.en_validation}</p>
+                <p className="text-sm text-muted-foreground">Total payé</p>
+                <p className="text-2xl font-bold">{formatGNF(stats.totalPaid)}</p>
               </div>
             </div>
           </Card>

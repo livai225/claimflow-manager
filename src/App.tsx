@@ -10,6 +10,13 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import ClaimsList from "@/pages/ClaimsList";
 import ClaimDetail from "@/pages/ClaimDetail";
+import NewClaim from "@/pages/NewClaim";
+import Users from "@/pages/Users";
+import Participants from "@/pages/Participants";
+import Reports from "@/pages/Reports";
+import Profile from "@/pages/Profile";
+import Payments from "@/pages/Payments";
+import Admin from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,7 +35,14 @@ const App = () => (
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="claims" element={<ClaimsList />} />
+                <Route path="claims/new" element={<NewClaim />} />
                 <Route path="claims/:id" element={<ClaimDetail />} />
+                <Route path="users" element={<Users />} />
+                <Route path="participants" element={<Participants />} />
+                <Route path="payments" element={<Payments />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="admin" element={<Admin />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
