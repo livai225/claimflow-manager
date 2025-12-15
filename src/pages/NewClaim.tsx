@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Check, Upload, FileText, Calendar, MapPin, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -65,6 +65,15 @@ const NewClaim: React.FC = () => {
         },
     });
 
+    useEffect(() => {
+        if (user?.role === 'assure') {
+            setValue('clientName', user.name);
+            setValue('clientEmail', user.email);
+            setValue('clientPhone', '+224 600 000 000');
+            setCurrentStep(2);
+        }
+    }, [setValue, user]);
+
     const formData = watch();
     const progress = (currentStep / steps.length) * 100;
 
@@ -83,20 +92,22 @@ const NewClaim: React.FC = () => {
     };
 
     const onSubmit = (data: ClaimFormData) => {
-        // Créer automatiquement le compte client
-        const clientUser = createClientAccount(
-            data.clientName,
-            data.clientEmail,
-            data.clientPhone
-        );
+        const creator = user!;
 
-        // Créer le sinistre avec le client comme déclarant
+        const declarant = creator.role === 'assure'
+            ? creator
+            : createClientAccount(
+                data.clientName,
+                data.clientEmail,
+                data.clientPhone
+            );
+
         const newClaim = addClaim({
             policyNumber: data.policyNumber,
             type: data.type as ClaimType,
             status: 'ouvert',
-            declarant: clientUser, // Le client est le déclarant
-            assignedTo: user, // Le gestionnaire/admin qui crée le dossier
+            declarant,
+            assignedTo: creator.role === 'assure' ? undefined : creator,
             dateIncident: new Date(data.dateIncident),
             dateDeclaration: new Date(data.dateDeclaration),
             location: data.location,
@@ -108,29 +119,35 @@ const NewClaim: React.FC = () => {
                 type: file.type,
                 url: '#',
                 uploadedAt: new Date(),
-                uploadedBy: user!,
+                uploadedBy: creator,
             })),
             events: [
                 {
                     id: 'evt-new-1',
                     type: 'creation',
-                    description: `Déclaration de sinistre créée par ${user!.name}`,
+                    description: `Déclaration de sinistre créée par ${creator.name}`,
                     date: new Date(),
-                    user: user!,
+                    user: creator,
                 },
-                {
-                    id: 'evt-new-2',
-                    type: 'status_change',
-                    description: `Compte client créé pour ${clientUser.name}`,
-                    date: new Date(),
-                    user: user!,
-                },
+                ...(creator.role !== 'assure'
+                    ? [
+                        {
+                            id: 'evt-new-2',
+                            type: 'statut',
+                            description: `Compte client créé pour ${declarant.name}`,
+                            date: new Date(),
+                            user: creator,
+                        },
+                    ]
+                    : []),
             ],
         });
 
         toast.success('Sinistre créé avec succès !');
-        toast.info(`Compte client créé pour ${clientUser.name}`);
-        toast.info(`Email envoyé à ${clientUser.email} avec les identifiants`);
+        if (creator.role !== 'assure') {
+            toast.info(`Compte client créé pour ${declarant.name}`);
+            toast.info(`Email envoyé à ${declarant.email} avec les identifiants`);
+        }
         navigate(`/claims/${newClaim.id}`);
     };
 
@@ -504,7 +521,7 @@ const NewClaim: React.FC = () => {
                                     type="button"
                                     variant="outline"
                                     onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-                                    disabled={currentStep === 1}
+                                    disabled={currentStep === 1 || (user?.role === 'assure' && currentStep === 2)}
                                 >
                                     <ArrowLeft className="h-4 w-4 mr-2" />
                                     Précédent

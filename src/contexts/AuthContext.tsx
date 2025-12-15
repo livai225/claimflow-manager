@@ -19,7 +19,7 @@ const rolePermissions: Record<UserRole, string[]> = {
   gestionnaire: ['claims.view', 'claims.edit', 'claims.assign', 'documents.upload'],
   expert: ['claims.view', 'expertise.create', 'expertise.edit', 'documents.upload'],
   comptabilite: ['claims.view', 'payments.create', 'payments.view', 'reports.view'],
-  assure: ['claims.view.own', 'claims.create', 'documents.upload.own'],
+  assure: ['claims.view', 'claims.view.own', 'claims.create', 'documents.upload.own'],
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
