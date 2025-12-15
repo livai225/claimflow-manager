@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
+  createClientAccount: (name: string, email: string, phone: string) => User;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,8 +45,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return permissions.includes('*') || permissions.includes(permission);
   }, [user]);
 
+  const createClientAccount = useCallback((name: string, email: string, phone: string): User => {
+    // Générer les initiales pour l'avatar
+    const initials = name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+
+    // Créer le nouvel utilisateur client
+    const newClient: User = {
+      id: `user-${Date.now()}`,
+      email: email,
+      name: name,
+      role: 'assure',
+      avatar: initials,
+      createdAt: new Date(),
+    };
+
+    // Ajouter à la liste des utilisateurs mock (simulation)
+    mockUsers.push(newClient);
+
+    // Simuler l'envoi d'email avec les identifiants
+    console.log(`📧 Email envoyé à ${email}`);
+    console.log(`Identifiants de connexion:`);
+    console.log(`Email: ${email}`);
+    console.log(`Mot de passe: demo123`);
+
+    return newClient;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, hasPermission, createClientAccount }}>
       {children}
     </AuthContext.Provider>
   );

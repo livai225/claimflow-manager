@@ -10,8 +10,59 @@ import { STATUS_CONFIG, TYPE_CONFIG } from '@/types/claims';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 const Dashboard: React.FC = () => {
-  const { claims, stats } = useClaims();
+  const { claims } = useClaims();
   const { user } = useAuth();
+
+  // Filtrer les sinistres pour le client
+  const dashboardClaims = React.useMemo(() => {
+    if (user?.role === 'assure') {
+      return claims.filter(c => c.declarant.id === user.id);
+    }
+    return claims;
+  }, [claims, user]);
+
+  const stats = React.useMemo(() => {
+    const totalClaims = dashboardClaims.length;
+    const openClaims = dashboardClaims.filter(c => c.status !== 'clos' && c.status !== 'paye' && c.status !== 'rejete').length;
+    const closedClaims = dashboardClaims.filter(c => c.status === 'clos').length;
+    const totalPaid = dashboardClaims
+      .filter(c => c.status === 'paye')
+      .reduce((acc, curr) => acc + (curr.paidAmount || 0), 0);
+
+    const claimsByStatus = dashboardClaims.reduce((acc, curr) => {
+      acc[curr.status] = (acc[curr.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const claimsByType = dashboardClaims.reduce((acc, curr) => {
+      acc[curr.type] = (acc[curr.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Calcul du délai moyen de traitement (approximatif pour les besoins du dashboard)
+    // On considère la différence entre createdAt et maintenant pour les dossiers non clos
+    // ou createdAt et la date de clôture (si disponible) pour les dossiers clos
+    // Pour simplifier, on utilisera une moyenne basée sur les dates de déclaration et d'incident
+    const avgProcessingDays = dashboardClaims.length > 0
+      ? Math.round(dashboardClaims.reduce((acc, curr) => {
+        const start = curr.dateDeclaration.getTime();
+        // Idéalement on utiliserait une propriété closedAt, mais on va utiliser updatedAd ou aujourd'hui
+        const end = curr.status === 'clos' ? (curr.updatedAt?.getTime() || Date.now()) : Date.now();
+        const days = Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
+        return acc + days;
+      }, 0) / dashboardClaims.length)
+      : 0;
+
+    return {
+      totalClaims,
+      openClaims,
+      closedClaims,
+      totalPaid,
+      claimsByStatus,
+      claimsByType,
+      avgProcessingDays
+    };
+  }, [dashboardClaims]);
 
   const formatGNF = (amount: number) => {
     return new Intl.NumberFormat('fr-GN', {
@@ -21,7 +72,7 @@ const Dashboard: React.FC = () => {
     }).format(amount);
   };
 
-  const recentClaims = claims.slice(0, 4);
+  const recentClaims = dashboardClaims.slice(0, 4);
 
   const statusData = Object.entries(stats.claimsByStatus)
     .filter(([_, count]) => count > 0)
@@ -42,7 +93,7 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen">
       <Header
         title={`Bonjour, ${user?.name?.split(' ')[0]}`}
-        subtitle="Voici un aperçu de l'activité sinistres"
+        subtitle={user?.role === 'assure' ? 'Suivez l\'état de vos dossiers en temps réel' : "Voici un aperçu de l'activité sinistres"}
       />
 
       <div className="p-6 space-y-6">

@@ -30,7 +30,7 @@ import { fr } from 'date-fns/locale';
 
 const ClaimsList: React.FC = () => {
   const { claims } = useClaims();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClaimStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ClaimType | 'all'>('all');
@@ -45,7 +45,14 @@ const ClaimsList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const filteredClaims = useMemo(() => {
-    return claims.filter((claim) => {
+    // Filtrer d'abord par utilisateur si c'est un client
+    let userClaims = claims;
+    if (user?.role === 'assure') {
+      // Les clients ne voient QUE leurs propres sinistres
+      userClaims = claims.filter(claim => claim.declarant.id === user.id);
+    }
+
+    return userClaims.filter((claim) => {
       const matchesSearch =
         claim.id.toLowerCase().includes(search.toLowerCase()) ||
         claim.policyNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -57,16 +64,25 @@ const ClaimsList: React.FC = () => {
 
       return matchesSearch && matchesStatus && matchesType;
     });
-  }, [claims, search, statusFilter, typeFilter]);
+  }, [claims, search, statusFilter, typeFilter, user]);
 
   return (
     <div className="min-h-screen">
       <Header
-        title="Sinistres"
+        title={user?.role === 'assure' ? 'Mes Sinistres' : 'Sinistres'}
         subtitle={`${filteredClaims.length} dossier(s) trouvé(s)`}
       />
 
       <div className="p-6 space-y-6">
+        {/* Message informatif pour les clients */}
+        {user?.role === 'assure' && (
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground">
+              <strong>Espace Client :</strong> Vous consultez uniquement vos sinistres déclarés. Pour toute question, contactez votre gestionnaire.
+            </p>
+          </div>
+        )}
+
         {/* Filters Bar */}
         <Card className="p-4">
           <div className="flex flex-col md:flex-row gap-4">

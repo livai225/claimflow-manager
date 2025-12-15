@@ -112,20 +112,16 @@ const Login: React.FC = () => {
                 Comptes de démonstration (mot de passe: demo123)
               </p>
               <div className="space-y-2">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.email}
-                    type="button"
-                    onClick={() => {
-                      setEmail(account.email);
-                      setPassword('demo123');
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <span className="text-foreground">{account.email}</span>
-                    <span className="text-muted-foreground text-xs">{account.role}</span>
-                  </button>
-                ))}
+                <p className="text-sm font-medium text-muted-foreground">Comptes de démonstration :</p>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Admin:</span> admin@assurflow.gn</p>
+                  <p><span className="font-medium">Gestionnaire:</span> gestionnaire@assurflow.gn</p>
+                  <p><span className="font-medium">Expert:</span> expert@assurflow.gn</p>
+                  <p><span className="font-medium">Superviseur:</span> superviseur@assurflow.gn</p>
+                  <p><span className="font-medium">Comptable:</span> comptable@assurflow.gn</p>
+                  <p><span className="font-medium">Client:</span> client@email.gn</p>
+                  <p className="text-muted-foreground mt-2">Mot de passe: <span className="font-medium">demo123</span></p>
+                </div>
               </div>
             </div>
           </CardContent>

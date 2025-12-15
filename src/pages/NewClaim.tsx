@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Upload, FileText, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Upload, FileText, Calendar, MapPin, User } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,7 +19,13 @@ import { TYPE_CONFIG, ClaimType } from '@/types/claims';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+
 const claimSchema = z.object({
+    // Informations du client
+    clientName: z.string().min(3, 'Le nom du client doit contenir au moins 3 caractères'),
+    clientEmail: z.string().email('Email invalide'),
+    clientPhone: z.string().min(8, 'Le numéro de téléphone doit contenir au moins 8 chiffres'),
+    // Informations du sinistre
     policyNumber: z.string().min(5, 'Le numéro de police doit contenir au moins 5 caractères'),
     type: z.enum(['auto', 'habitation', 'sante', 'responsabilite_civile', 'vie']),
     dateIncident: z.string().min(1, 'La date de l\'incident est requise'),
@@ -32,10 +38,11 @@ const claimSchema = z.object({
 type ClaimFormData = z.infer<typeof claimSchema>;
 
 const steps = [
-    { id: 1, title: 'Informations générales', icon: FileText },
-    { id: 2, title: 'Détails du sinistre', icon: MapPin },
-    { id: 3, title: 'Documents', icon: Upload },
-    { id: 4, title: 'Récapitulatif', icon: Check },
+    { id: 1, title: 'Informations du client', icon: User },
+    { id: 2, title: 'Informations générales', icon: FileText },
+    { id: 3, title: 'Détails du sinistre', icon: MapPin },
+    { id: 4, title: 'Documents', icon: Upload },
+    { id: 5, title: 'Récapitulatif', icon: Check },
 ];
 
 const NewClaim: React.FC = () => {
@@ -43,7 +50,7 @@ const NewClaim: React.FC = () => {
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const navigate = useNavigate();
     const { addClaim } = useClaims();
-    const { user } = useAuth();
+    const { user, createClientAccount } = useAuth();
 
     const {
         register,
@@ -76,12 +83,20 @@ const NewClaim: React.FC = () => {
     };
 
     const onSubmit = (data: ClaimFormData) => {
-        // Dernière étape : créer le sinistre
+        // Créer automatiquement le compte client
+        const clientUser = createClientAccount(
+            data.clientName,
+            data.clientEmail,
+            data.clientPhone
+        );
+
+        // Créer le sinistre avec le client comme déclarant
         const newClaim = addClaim({
             policyNumber: data.policyNumber,
             type: data.type as ClaimType,
             status: 'ouvert',
-            declarant: user!,
+            declarant: clientUser, // Le client est le déclarant
+            assignedTo: user, // Le gestionnaire/admin qui crée le dossier
             dateIncident: new Date(data.dateIncident),
             dateDeclaration: new Date(data.dateDeclaration),
             location: data.location,
@@ -99,7 +114,14 @@ const NewClaim: React.FC = () => {
                 {
                     id: 'evt-new-1',
                     type: 'creation',
-                    description: 'Déclaration de sinistre créée',
+                    description: `Déclaration de sinistre créée par ${user!.name}`,
+                    date: new Date(),
+                    user: user!,
+                },
+                {
+                    id: 'evt-new-2',
+                    type: 'status_change',
+                    description: `Compte client créé pour ${clientUser.name}`,
                     date: new Date(),
                     user: user!,
                 },
@@ -107,12 +129,65 @@ const NewClaim: React.FC = () => {
         });
 
         toast.success('Sinistre créé avec succès !');
+        toast.info(`Compte client créé pour ${clientUser.name}`);
+        toast.info(`Email envoyé à ${clientUser.email} avec les identifiants`);
         navigate(`/claims/${newClaim.id}`);
     };
 
     const renderStep = () => {
         switch (currentStep) {
             case 1:
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-primary/5 p-4 rounded-lg mb-4">
+                            <p className="text-sm text-muted-foreground">
+                                <strong>Note :</strong> Ces informations permettront au client de se connecter et suivre son dossier.
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="clientName">Nom complet du client *</Label>
+                            <Input
+                                id="clientName"
+                                placeholder="Ex: Kadiatou Condé"
+                                {...register('clientName')}
+                            />
+                            {errors.clientName && (
+                                <p className="text-sm text-destructive">{errors.clientName.message}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="clientEmail">Email du client *</Label>
+                            <Input
+                                id="clientEmail"
+                                type="email"
+                                placeholder="Ex: kadiatou.conde@email.gn"
+                                {...register('clientEmail')}
+                            />
+                            {errors.clientEmail && (
+                                <p className="text-sm text-destructive">{errors.clientEmail.message}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                Le client recevra ses identifiants de connexion à cette adresse
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="clientPhone">Téléphone du client *</Label>
+                            <Input
+                                id="clientPhone"
+                                placeholder="Ex: +224 622 123 456"
+                                {...register('clientPhone')}
+                            />
+                            {errors.clientPhone && (
+                                <p className="text-sm text-destructive">{errors.clientPhone.message}</p>
+                            )}
+                        </div>
+                    </div>
+                );
+
+            case 2:
                 return (
                     <div className="space-y-6">
                         <div className="space-y-2">
@@ -180,7 +255,7 @@ const NewClaim: React.FC = () => {
                     </div>
                 );
 
-            case 2:
+            case 3:
                 return (
                     <div className="space-y-6">
                         <div className="space-y-2">
@@ -223,7 +298,7 @@ const NewClaim: React.FC = () => {
                     </div>
                 );
 
-            case 3:
+            case 4:
                 return (
                     <div className="space-y-6">
                         <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
@@ -262,11 +337,31 @@ const NewClaim: React.FC = () => {
                     </div>
                 );
 
-            case 4:
+            case 5:
                 return (
                     <div className="space-y-6">
                         <div className="bg-muted/50 rounded-lg p-6 space-y-4">
                             <h3 className="font-semibold text-lg">Récapitulatif</h3>
+
+                            <div>
+                                <h4 className="font-medium mb-2">Informations du client</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Nom</p>
+                                        <p className="font-medium">{formData.clientName}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Email</p>
+                                        <p className="font-medium">{formData.clientEmail}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-muted-foreground">Téléphone</p>
+                                        <p className="font-medium">{formData.clientPhone}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Separator />
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
