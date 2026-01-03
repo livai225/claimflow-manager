@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -57,33 +60,85 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // NSIA Brand Colors
+        nsia: {
+          gold: "hsl(var(--nsia-gold))",
+          "gold-light": "hsl(var(--nsia-gold-light))",
+          "gold-dark": "hsl(var(--nsia-gold-dark))",
+          charcoal: "hsl(var(--nsia-charcoal))",
+          "charcoal-light": "hsl(var(--nsia-charcoal-light))",
+          silver: "hsl(var(--nsia-silver))",
+          "silver-light": "hsl(var(--nsia-silver-light))",
+        },
+        // Status Colors
+        status: {
+          info: "hsl(var(--status-info))",
+          success: "hsl(var(--status-success))",
+          warning: "hsl(var(--status-warning))",
+          error: "hsl(var(--status-error))",
+          pending: "hsl(var(--status-pending))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        'gold': '0 4px 20px -2px hsl(43 70% 53% / 0.25)',
+        'gold-lg': '0 10px 40px -5px hsl(43 70% 53% / 0.3)',
+        'premium': '0 25px 50px -12px hsl(0 0% 0% / 0.25)',
+        'inner-gold': 'inset 0 1px 0 0 hsl(43 80% 65% / 0.5)',
+      },
+      backgroundImage: {
+        'gradient-gold': 'linear-gradient(135deg, hsl(43 70% 53%), hsl(43 80% 65%))',
+        'gradient-dark': 'linear-gradient(135deg, hsl(0 0% 12%), hsl(0 0% 20%))',
+        'gradient-radial': 'radial-gradient(circle at center, var(--tw-gradient-stops))',
+        'mesh-pattern': 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23d4a43c" fill-opacity="0.05"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+      },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "pulse-gold": {
+          "0%, 100%": { boxShadow: "0 0 0 0 hsl(43 70% 53% / 0.4)" },
+          "50%": { boxShadow: "0 0 0 15px hsl(43 70% 53% / 0)" },
+        },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in-right": {
+          from: { opacity: "0", transform: "translateX(20px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "scale(0.95)" },
+          to: { opacity: "1", transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        shimmer: "shimmer 2s infinite",
+        float: "float 3s ease-in-out infinite",
+        "pulse-gold": "pulse-gold 2s ease-in-out infinite",
+        "fade-in": "fade-in 0.4s ease-out forwards",
+        "slide-in-right": "slide-in-right 0.4s ease-out forwards",
+        "scale-in": "scale-in 0.3s ease-out forwards",
       },
     },
   },
