@@ -10,6 +10,15 @@ import { useClaims } from '@/contexts/ClaimsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,6 +26,7 @@ import { TYPE_CONFIG, STATUS_CONFIG, ClaimStatus, User as UserType } from '@/typ
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ClaimProcessSteps } from '@/components/ClaimProcessSteps';
 import {
   Dialog,
   DialogContent,
@@ -29,10 +39,15 @@ const statusFlow: ClaimStatus[] = ['ouvert', 'en_analyse', 'en_expertise', 'en_v
 
 const ClaimDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { getClaimById, updateClaimStatus } = useClaims();
-  const { hasPermission } = useAuth();
+  const { getClaimById, updateClaimStatus, upsertClaimExpertise } = useClaims();
+  const { hasPermission, user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [expertiseStatus, setExpertiseStatus] = useState<'planifie' | 'en_cours' | 'termine'>('planifie');
+  const [expertiseScheduledDate, setExpertiseScheduledDate] = useState<string>('');
+  const [expertiseCompletedDate, setExpertiseCompletedDate] = useState<string>('');
+  const [expertiseEstimatedAmount, setExpertiseEstimatedAmount] = useState<string>('');
+  const [expertiseReport, setExpertiseReport] = useState<string>('');
 
   const formatGNF = (amount: number) => {
     return new Intl.NumberFormat('fr-GN', {
@@ -63,6 +78,20 @@ const ClaimDetail: React.FC = () => {
 
   const typeConfig = TYPE_CONFIG[claim.type];
   const TypeIcon = typeConfig.icon;
+
+  const isMandatedExpert = user?.role === 'expert' && claim.expert?.id === user.id;
+  const canEditExpertise = isMandatedExpert && (hasPermission('expertise.edit') || hasPermission('expertise.create') || hasPermission('*'));
+
+  React.useEffect(() => {
+    const exp = claim.expertise;
+    if (!exp) return;
+
+    setExpertiseStatus(exp.status);
+    setExpertiseScheduledDate(exp.scheduledDate ? format(exp.scheduledDate, 'yyyy-MM-dd') : '');
+    setExpertiseCompletedDate(exp.completedDate ? format(exp.completedDate, 'yyyy-MM-dd') : '');
+    setExpertiseEstimatedAmount(exp.estimatedAmount != null ? String(exp.estimatedAmount) : '');
+    setExpertiseReport(exp.report ?? '');
+  }, [claim.expertise]);
 
   const handleUserClick = (user: UserType) => {
     setSelectedUser(user);
@@ -188,11 +217,13 @@ const ClaimDetail: React.FC = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="progression" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="progression">Progression</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="overview">Aperçu</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="historique">Historique</TabsTrigger>
-            <TabsTrigger value="montants">Montants</TabsTrigger>
+            <TabsTrigger value="history">Historique</TabsTrigger>
+            <TabsTrigger value="process">Processus</TabsTrigger>
+            <TabsTrigger value="expertise">Expertise</TabsTrigger>
+            <TabsTrigger value="participants">Participants</TabsTrigger>
           </TabsList>
 
           {/* Onglet Progression détaillé */}
@@ -354,7 +385,7 @@ const ClaimDetail: React.FC = () => {
           </TabsContent>
 
           {/* Onglet Historique */}
-          <TabsContent value="historique">
+          <TabsContent value="history">
             <Card>
               <CardHeader>
                 <CardTitle>Historique des événements</CardTitle>
@@ -382,6 +413,169 @@ const ClaimDetail: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Onglet Processus */}
+          <TabsContent value="process">
+            <div className="space-y-6">
+              <h3 className="text-lg font-medium">Processus de traitement du sinistre</h3>
+              <ClaimProcessSteps claimId={claim.id} />
+            </div>
+          </TabsContent>
+
+          {/* Onglet Expertise */}
+          <TabsContent value="expertise">
+            <Card>
+              <CardHeader>
+                <CardTitle>Expertise</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!canEditExpertise && (
+                  <div className="text-sm text-muted-foreground">
+                    {claim.expertise
+                      ? 'Cette expertise est en lecture seule.'
+                      : "Aucune expertise n'a encore été enregistrée."}
+                  </div>
+                )}
+
+                {claim.expertise && !canEditExpertise && (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Statut</span>
+                      <span className="font-medium">{claim.expertise.status}</span>
+                    </div>
+                    {claim.expertise.scheduledDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Planifiée</span>
+                        <span className="font-medium">{format(claim.expertise.scheduledDate, 'dd/MM/yyyy', { locale: fr })}</span>
+                      </div>
+                    )}
+                    {claim.expertise.completedDate && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Terminée</span>
+                        <span className="font-medium">{format(claim.expertise.completedDate, 'dd/MM/yyyy', { locale: fr })}</span>
+                      </div>
+                    )}
+                    {claim.expertise.estimatedAmount != null && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Montant estimé</span>
+                        <span className="font-medium">{formatGNF(claim.expertise.estimatedAmount)}</span>
+                      </div>
+                    )}
+                    {claim.expertise.report && (
+                      <div>
+                        <p className="text-muted-foreground mb-1">Rapport</p>
+                        <p className="whitespace-pre-wrap">{claim.expertise.report}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {canEditExpertise && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Statut</Label>
+                      <Select value={expertiseStatus} onValueChange={(v) => setExpertiseStatus(v as 'planifie' | 'en_cours' | 'termine')}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="planifie">Planifiée</SelectItem>
+                          <SelectItem value="en_cours">En cours</SelectItem>
+                          <SelectItem value="termine">Terminée</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Date planifiée</Label>
+                        <Input type="date" value={expertiseScheduledDate} onChange={(e) => setExpertiseScheduledDate(e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Date de fin</Label>
+                        <Input type="date" value={expertiseCompletedDate} onChange={(e) => setExpertiseCompletedDate(e.target.value)} disabled={expertiseStatus !== 'termine'} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Montant estimé (GNF)</Label>
+                      <Input type="number" value={expertiseEstimatedAmount} onChange={(e) => setExpertiseEstimatedAmount(e.target.value)} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Rapport</Label>
+                      <Textarea value={expertiseReport} onChange={(e) => setExpertiseReport(e.target.value)} rows={6} />
+                    </div>
+
+                    <Button
+                      onClick={() => {
+                        if (!user) return;
+                        upsertClaimExpertise(claim.id, {
+                          status: expertiseStatus,
+                          scheduledDate: expertiseScheduledDate ? new Date(expertiseScheduledDate) : undefined,
+                          completedDate: expertiseCompletedDate ? new Date(expertiseCompletedDate) : undefined,
+                          estimatedAmount: expertiseEstimatedAmount ? Number(expertiseEstimatedAmount) : undefined,
+                          report: expertiseReport || undefined,
+                          user,
+                        });
+                      }}
+                    >
+                      Enregistrer l'expertise
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Onglet Participants */}
+          <TabsContent value="participants">
+            <Card>
+              <CardHeader>
+                <CardTitle>Participants</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Déclarant */}
+                  <div className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                      {claim.declarant.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">{claim.declarant.name}</p>
+                      <p className="text-sm text-muted-foreground">Déclarant</p>
+                    </div>
+                  </div>
+
+                  {/* Gestionnaire assigné */}
+                  {claim.assignedTo && (
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                        {claim.assignedTo.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{claim.assignedTo.name}</p>
+                        <p className="text-sm text-muted-foreground">Gestionnaire</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Expert */}
+                  {claim.expert && (
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
+                        {claim.expert.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{claim.expert.name}</p>
+                        <p className="text-sm text-muted-foreground">Expert</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

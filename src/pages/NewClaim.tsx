@@ -15,12 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { TYPE_CONFIG, ClaimType } from '@/types/claims';
-import { format } from 'date-fns';
+import { TYPE_CONFIG, ClaimType, ClaimEvent } from '@/types/claims';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 
-const claimSchema = z.object({
+const claimSchema = z
+    .object({
     // Informations du client
     clientName: z.string().min(3, 'Le nom du client doit contenir au moins 3 caractères'),
     clientEmail: z.string().email('Email invalide'),
@@ -33,7 +34,31 @@ const claimSchema = z.object({
     location: z.string().min(3, 'Le lieu doit contenir au moins 3 caractères'),
     description: z.string().min(20, 'La description doit contenir au moins 20 caractères'),
     estimatedAmount: z.string().min(1, 'Le montant estimé est requis'),
-});
+    })
+    .superRefine((data, ctx) => {
+        const incident = new Date(data.dateIncident);
+        const declaration = new Date(data.dateDeclaration);
+
+        if (Number.isNaN(incident.getTime()) || Number.isNaN(declaration.getTime())) return;
+
+        const days = differenceInCalendarDays(declaration, incident);
+
+        if (days < 0) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['dateDeclaration'],
+                message: "La date de déclaration ne peut pas être antérieure à la date de l'incident",
+            });
+        }
+
+        if (days > 5) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['dateDeclaration'],
+                message: "Le sinistre doit être déclaré dans un délai de 5 jours",
+            });
+        }
+    });
 
 type ClaimFormData = z.infer<typeof claimSchema>;
 
@@ -85,6 +110,11 @@ const NewClaim: React.FC = () => {
     };
 
     const handleNext = () => {
+        if (currentStep === 4 && uploadedFiles.length === 0) {
+            toast.error('Veuillez ajouter au moins une pièce de procédure avant de continuer.');
+            return;
+        }
+
         if (currentStep < steps.length) {
             setCurrentStep(currentStep + 1);
             toast.success('Étape validée !');
@@ -94,6 +124,23 @@ const NewClaim: React.FC = () => {
     const onSubmit = (data: ClaimFormData) => {
         const creator = user!;
 
+        const incident = new Date(data.dateIncident);
+        const declaration = new Date(data.dateDeclaration);
+        const days = differenceInCalendarDays(declaration, incident);
+        if (days < 0) {
+            toast.error("La date de déclaration ne peut pas être antérieure à la date de l'incident");
+            return;
+        }
+        if (days > 5) {
+            toast.error('Déclaration hors délai : le sinistre doit être déclaré dans les 5 jours.');
+            return;
+        }
+
+        if (uploadedFiles.length === 0) {
+            toast.error('Pièces de procédure manquantes : ajoutez au moins un document avant de créer le sinistre.');
+            return;
+        }
+
         const declarant = creator.role === 'assure'
             ? creator
             : createClientAccount(
@@ -101,6 +148,26 @@ const NewClaim: React.FC = () => {
                 data.clientEmail,
                 data.clientPhone
             );
+
+        const events: ClaimEvent[] = [
+            {
+                id: 'evt-new-1',
+                type: 'creation',
+                description: `Déclaration de sinistre créée par ${creator.name}`,
+                date: new Date(),
+                user: creator,
+            },
+        ];
+
+        if (creator.role !== 'assure') {
+            events.push({
+                id: 'evt-new-2',
+                type: 'statut',
+                description: `Compte client créé pour ${declarant.name}`,
+                date: new Date(),
+                user: creator,
+            });
+        }
 
         const newClaim = addClaim({
             policyNumber: data.policyNumber,
@@ -121,26 +188,7 @@ const NewClaim: React.FC = () => {
                 uploadedAt: new Date(),
                 uploadedBy: creator,
             })),
-            events: [
-                {
-                    id: 'evt-new-1',
-                    type: 'creation',
-                    description: `Déclaration de sinistre créée par ${creator.name}`,
-                    date: new Date(),
-                    user: creator,
-                },
-                ...(creator.role !== 'assure'
-                    ? [
-                        {
-                            id: 'evt-new-2',
-                            type: 'statut',
-                            description: `Compte client créé pour ${declarant.name}`,
-                            date: new Date(),
-                            user: creator,
-                        },
-                    ]
-                    : []),
-            ],
+            events,
         });
 
         toast.success('Sinistre créé avec succès !');
@@ -399,7 +447,9 @@ const NewClaim: React.FC = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Montant estimé</p>
-                                    <p className="font-medium">{formData.estimatedAmount?.toLocaleString('fr-GN')} GNF</p>
+                                    <p className="font-medium">
+                                        {formData.estimatedAmount ? Number(formData.estimatedAmount).toLocaleString('fr-GN') : ''} GNF
+                                    </p>
                                 </div>
                             </div>
 

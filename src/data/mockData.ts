@@ -1,4 +1,102 @@
-import { User, Claim, DashboardStats, ClaimStatus, ClaimType, UserRole } from '@/types/claims';
+import { User, Claim, DashboardStats, ClaimStatus, ClaimType, UserRole, ProcessStep, Participant } from '@/types/claims';
+
+const createInitialSteps = (): ProcessStep[] => [
+  {
+    id: 'declaration',
+    title: '1. Déclaration du sinistre',
+    description: [
+      "Délai de 5 jours pour déclarer le sinistre à l'assureur dès sa connaissance (Article 27, paragraphe 4 du Code des assurances).",
+      'À la réception de la déclaration :',
+      '• Accuser réception',
+      '• Demander les pièces de procédure',
+      "• Mandater un expert pour l'évaluation des dommages",
+      '• Attribuer un numéro de sinistre au dossier',
+    ],
+    status: 'in_progress',
+    startedAt: new Date(),
+    requiredActions: ['Vérifier les documents fournis', 'Assigner un gestionnaire', "Passer à l'analyse"],
+  },
+  {
+    id: 'instruction',
+    title: "2. Phase d'instruction",
+    description: [
+      'À la réception des pièces de procédure :',
+      "• Délivrer un acte de nomination à l'expert mandaté",
+      "• Délai de 2 semaines pour le dépôt des conclusions de l'expert",
+      '\nPour les sinistres corporels :',
+      "• Délivrer un bon de prise en charge pour l'hôpital",
+      "• Délivrer une lettre de demande d'informations pour la victime ou les ayants droit (Articles 81 et 89 du Code des assurances)",
+    ],
+    status: 'pending',
+    requiredActions: ['Attendre les pièces de procédure', 'Désigner un expert si nécessaire', 'Délivrer les documents requis'],
+  },
+  {
+    id: 'expertise',
+    title: '3. Expertise et évaluation',
+    description: [
+      "L'expert doit évaluer les dommages et fournir un rapport détaillé.",
+      "L'expert dispose d'un délai de 15 jours pour rendre son rapport.",
+      'Le rapport doit inclure :',
+      '• L\u2019évaluation des dommages',
+      '• Les causes du sinistre',
+      '• Les mesures de prévention recommandées',
+    ],
+    status: 'pending',
+    requiredActions: ["Attendre le rapport d'expertise", "Valider l'estimation des dommages", 'Préparer le dossier pour validation'],
+  },
+  {
+    id: 'validation',
+    title: '4. Validation et décision',
+    description: [
+      "Le gestionnaire doit valider le rapport d'expertise.",
+      "En cas d'accord, préparer la proposition d'indemnisation.",
+      "En cas de désaccord, demander des compléments d'information.",
+      'Transmettre la décision au service compétent pour le paiement.',
+    ],
+    status: 'pending',
+    requiredActions: ['Réviser le montant proposé', 'Approuver ou rejeter le dossier', 'Notifier le déclarant'],
+  },
+  {
+    id: 'paiement',
+    title: '5. Paiement et clôture',
+    description: [
+      "Préparer l'ordre de paiement.",
+      'Vérifier les coordonnées bancaires du bénéficiaire.',
+      'Effectuer le virement bancaire.',
+      'Archiver le dossier une fois le paiement effectué.',
+    ],
+    status: 'pending',
+    requiredActions: ["Préparer l'ordre de paiement", 'Vérifier les coordonnées bancaires', 'Effectuer le virement'],
+  },
+];
+
+const createParticipants = (claim: Pick<Claim, 'declarant' | 'assignedTo' | 'expert'>): Participant[] => {
+  const participants: Participant[] = [
+    {
+      ...claim.declarant,
+      role: claim.declarant.role,
+      roleLabel: 'Déclarant',
+    },
+  ];
+
+  if (claim.assignedTo) {
+    participants.push({
+      ...claim.assignedTo,
+      role: claim.assignedTo.role,
+      roleLabel: 'Gestionnaire',
+    });
+  }
+
+  if (claim.expert) {
+    participants.push({
+      ...claim.expert,
+      role: claim.expert.role,
+      roleLabel: 'Expert',
+    });
+  }
+
+  return participants;
+};
 
 export const mockUsers: User[] = [
   {
@@ -59,11 +157,14 @@ export const mockClaims: Claim[] = [
     status: 'en_analyse',
     declarant: mockUsers[5], // Kadiatou Condé (client)
     assignedTo: mockUsers[1], // Fatoumata Camara (gestionnaire)
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-11-15'),
     dateDeclaration: new Date('2024-11-16'),
     location: 'Kaloum, Avenue de la République, Conakry',
     description: 'Collision avec un autre véhicule au niveau du rond-point de Kaloum. Dégâts importants sur l\'avant du véhicule.',
     estimatedAmount: 45000000,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       {
         id: 'doc-1',
@@ -98,6 +199,8 @@ export const mockClaims: Claim[] = [
         user: mockUsers[0],
       },
     ],
+    createdAt: new Date('2024-11-16'),
+    updatedAt: new Date('2024-11-17'),
   },
   {
     id: 'CLM-2024-002',
@@ -107,12 +210,15 @@ export const mockClaims: Claim[] = [
     declarant: mockUsers[5], // Kadiatou Condé (client)
     assignedTo: mockUsers[1],
     expert: mockUsers[2],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: mockUsers[2] }),
     dateIncident: new Date('2024-10-20'),
     dateDeclaration: new Date('2024-10-21'),
     location: 'Matam, Quartier Hamdallaye, Conakry',
     description: 'Dégât des eaux suite à une fuite de canalisation. Plusieurs pièces endommagées.',
     estimatedAmount: 28000000,
     approvedAmount: 25000000,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-3', name: 'Photos plafond.jpg', type: 'photo', url: '#', uploadedAt: new Date('2024-11-29'), uploadedBy: mockUsers[5] },
       { id: 'doc-4', name: 'Devis réparation.pdf', type: 'devis', url: '#', uploadedAt: new Date('2024-11-30'), uploadedBy: mockUsers[5] },
@@ -133,12 +239,15 @@ export const mockClaims: Claim[] = [
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
     expert: mockUsers[2],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: mockUsers[2] }),
     dateIncident: new Date('2024-11-15'),
     dateDeclaration: new Date('2024-11-16'),
     location: 'Kankan, Centre-ville',
     description: 'Vol de matériel médical dans le cabinet. Porte forcée.',
     estimatedAmount: 120000000,
     paidAmount: 105000000,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-5', name: 'Dépôt de plainte.pdf', type: 'rapport', url: '#', uploadedAt: new Date('2024-11-16'), uploadedBy: mockUsers[5] },
       { id: 'doc-6', name: 'Carte grise.pdf', type: 'administratif', url: '#', uploadedAt: new Date('2024-11-16'), uploadedBy: mockUsers[5] },
@@ -166,12 +275,15 @@ export const mockClaims: Claim[] = [
     status: 'en_validation',
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-09-10'),
     dateDeclaration: new Date('2024-09-11'),
     location: 'Kindia, Quartier Madina',
     description: 'Incendie partiel de la cuisine suite à un court-circuit.',
     estimatedAmount: 250000000,
     approvedAmount: 3800,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-7', name: 'Facture hôpital.pdf', type: 'facture', url: '#', uploadedAt: new Date('2024-11-12'), uploadedBy: mockUsers[5] },
       { id: 'doc-8', name: 'Ordonnance.pdf', type: 'administratif', url: '#', uploadedAt: new Date('2024-11-12'), uploadedBy: mockUsers[5] },
@@ -190,12 +302,15 @@ export const mockClaims: Claim[] = [
     status: 'approuve',
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-10-20'),
     dateDeclaration: new Date('2024-10-21'),
     location: 'Toulouse, Place du Capitole',
     description: 'Cambriolage avec effraction. Vol de matériel informatique et bijoux.',
     estimatedAmount: 15000,
     approvedAmount: 12500,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-9', name: 'Dépôt de plainte.pdf', type: 'rapport', url: '#', uploadedAt: new Date('2024-10-21'), uploadedBy: mockUsers[5] },
       { id: 'doc-10', name: 'Liste objets volés.pdf', type: 'administratif', url: '#', uploadedAt: new Date('2024-10-22'), uploadedBy: mockUsers[5] },
@@ -215,6 +330,7 @@ export const mockClaims: Claim[] = [
     status: 'paye',
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-10-20'),
     dateDeclaration: new Date('2024-10-21'),
     location: 'Labé, Route de Pita',
@@ -222,6 +338,8 @@ export const mockClaims: Claim[] = [
     estimatedAmount: 150000000,
     approvedAmount: 850,
     paidAmount: 140000000,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-12', name: 'Constat.pdf', type: 'constat', url: '#', uploadedAt: new Date('2024-09-16'), uploadedBy: mockUsers[5] },
     ],
@@ -249,6 +367,7 @@ export const mockClaims: Claim[] = [
     status: 'clos',
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-07-15'),
     dateDeclaration: new Date('2024-07-16'),
     location: 'Nzérékoré, Marché central',
@@ -256,6 +375,8 @@ export const mockClaims: Claim[] = [
     estimatedAmount: 50000000,
     approvedAmount: 2000,
     paidAmount: 2000,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-13', name: 'Déclaration.pdf', type: 'administratif', url: '#', uploadedAt: new Date('2024-08-12'), uploadedBy: mockUsers[5] },
       { id: 'doc-14', name: 'Facture réparation.pdf', type: 'facture', url: '#', uploadedAt: new Date('2024-08-20'), uploadedBy: mockUsers[5] },
@@ -285,12 +406,15 @@ export const mockClaims: Claim[] = [
     status: 'rejete',
     declarant: mockUsers[5],
     assignedTo: mockUsers[1],
+    participants: createParticipants({ declarant: mockUsers[5], assignedTo: mockUsers[1], expert: undefined }),
     dateIncident: new Date('2024-07-25'),
     dateDeclaration: new Date('2024-07-28'),
     location: 'Boké, Route nationale',
     description: 'Demande d\'indemnisation pour usure des pneus.',
     estimatedAmount: 6000000,
     rejectionReason: 'L\'usure normale des pneus n\'est pas couverte par le contrat d\'assurance auto.',
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
     documents: [
       { id: 'doc-15', name: 'Photos pneus.jpg', type: 'photo', url: '#', uploadedAt: new Date('2024-07-28'), uploadedBy: mockUsers[5] },
     ],

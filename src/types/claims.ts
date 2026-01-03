@@ -74,6 +74,23 @@ export interface Payment {
   createdAt: Date;
 }
 
+export interface Participant extends Omit<User, 'role'> {
+  role: UserRole;
+  roleLabel: string;
+  phone?: string;
+  department?: string;
+}
+
+export type ProcessStep = {
+  id: string;
+  title: string;
+  description: string[];
+  status: 'completed' | 'in_progress' | 'pending';
+  requiredActions?: string[];
+  completedAt?: Date;
+  startedAt?: Date;
+};
+
 export interface Claim {
   id: string;
   policyNumber: string;
@@ -82,6 +99,7 @@ export interface Claim {
   declarant: User;
   assignedTo?: User;
   expert?: User;
+  participants: Participant[];
   dateIncident: Date;
   dateDeclaration: Date;
   location: string;
@@ -94,6 +112,8 @@ export interface Claim {
   events: ClaimEvent[];
   expertise?: Expertise;
   payment?: Payment;
+  processSteps: ProcessStep[];
+  currentStepId: string;
   createdAt: Date;
   updatedAt: Date;
 }

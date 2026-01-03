@@ -52,6 +52,11 @@ const ClaimsList: React.FC = () => {
       userClaims = claims.filter(claim => claim.declarant.id === user.id);
     }
 
+    if (user?.role === 'expert') {
+      // Les experts voient les sinistres qui leur sont mandatés
+      userClaims = claims.filter(claim => claim.expert?.id === user.id);
+    }
+
     return userClaims.filter((claim) => {
       const matchesSearch =
         claim.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -97,7 +102,7 @@ const ClaimsList: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ClaimStatus | 'all')}>
                 <SelectTrigger className="w-[180px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Statut" />
@@ -110,7 +115,7 @@ const ClaimsList: React.FC = () => {
                 </SelectContent>
               </Select>
 
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ClaimType | 'all')}>
                 <SelectTrigger className="w-[180px]">
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Type" />
