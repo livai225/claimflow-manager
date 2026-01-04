@@ -13,7 +13,8 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar />
-      <main className="pl-64">
+      {/* Main content - responsive padding */}
+      <main className="lg:pl-64 pt-16 lg:pt-0">
         <Outlet />
       </main>
     </div>

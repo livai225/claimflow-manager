@@ -6,7 +6,7 @@
 
 /* NSIA Corporate Design System
    Primary: Gold (#D4A43C) - Or NSIA
-   Secondary: Charcoal (#3D3D3D) - Gris anthracite
+   Secondary: Blue (#1E3A5F) - Bleu NSIA
    Accent: Silver (#8B8B8B) - Argenté
 */
 
@@ -16,8 +16,9 @@
     --nsia-gold: 43 70% 53%;
     --nsia-gold-light: 43 80% 65%;
     --nsia-gold-dark: 43 70% 40%;
-    --nsia-charcoal: 0 0% 24%;
-    --nsia-charcoal-light: 0 0% 35%;
+    --nsia-blue: 213 52% 24%;
+    --nsia-blue-light: 213 52% 35%;
+    --nsia-blue-dark: 213 52% 18%;
     --nsia-silver: 0 0% 55%;
     --nsia-silver-light: 0 0% 75%;
     
@@ -33,7 +34,7 @@
     --primary: 43 70% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 24%;
+    --secondary: 213 52% 24%;
     --secondary-foreground: 0 0% 98%;
 
     --muted: 40 10% 95%;
@@ -51,14 +52,14 @@
 
     --radius: 0.75rem;
 
-    /* Sidebar - Dark theme for contrast */
-    --sidebar-background: 0 0% 12%;
+    /* Sidebar - Blue theme */
+    --sidebar-background: 213 52% 20%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 43 70% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent: 213 52% 28%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 20%;
+    --sidebar-border: 213 52% 30%;
     --sidebar-ring: 43 70% 53%;
 
     /* Status Colors */
@@ -70,46 +71,46 @@
     
     /* Gradients */
     --gradient-gold: linear-gradient(135deg, hsl(43 70% 53%), hsl(43 80% 65%));
-    --gradient-dark: linear-gradient(135deg, hsl(0 0% 12%), hsl(0 0% 20%));
+    --gradient-blue: linear-gradient(135deg, hsl(213 52% 20%), hsl(213 52% 30%));
     --gradient-silver: linear-gradient(135deg, hsl(0 0% 75%), hsl(0 0% 55%));
   }
 
   .dark {
-    --background: 0 0% 8%;
+    --background: 213 52% 8%;
     --foreground: 0 0% 95%;
 
-    --card: 0 0% 12%;
+    --card: 213 52% 12%;
     --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 12%;
+    --popover: 213 52% 12%;
     --popover-foreground: 0 0% 95%;
 
     --primary: 43 70% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 20%;
+    --secondary: 213 52% 20%;
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 0 0% 18%;
+    --muted: 213 52% 18%;
     --muted-foreground: 0 0% 60%;
 
-    --accent: 0 0% 20%;
+    --accent: 213 52% 20%;
     --accent-foreground: 0 0% 95%;
 
     --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --border: 213 52% 20%;
+    --input: 213 52% 20%;
     --ring: 43 70% 53%;
     
-    --sidebar-background: 0 0% 6%;
+    --sidebar-background: 213 52% 12%;
     --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 43 70% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent: 213 52% 18%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 15%;
+    --sidebar-border: 213 52% 22%;
     --sidebar-ring: 43 70% 53%;
   }
 }
@@ -231,7 +232,7 @@
     @apply transition-all duration-300;
   }
   
-  .btn-charcoal {
+  .btn-blue {
     @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
     @apply transition-all duration-300;
   }
