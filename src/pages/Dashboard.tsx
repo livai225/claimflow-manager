@@ -97,13 +97,13 @@ const Dashboard: React.FC = () => {
         subtitle={user?.role === 'assure' ? 'Suivez l\'état de vos dossiers en temps réel' : "Voici un aperçu de l'activité sinistres"}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {user?.role === 'assure' ? (
           <InsuredDashboard claims={dashboardClaims} />
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
               <StatsCard
                 title="Total sinistres"
                 value={stats.totalClaims}
@@ -136,7 +136,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               {/* Status Distribution */}
               <Card>
                 <CardHeader>
@@ -216,7 +216,7 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
               <Card className="p-4">
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-xl bg-primary/10">
@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
                   Voir tous les sinistres →
                 </a>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
                 {recentClaims.map((claim) => (
                   <ClaimCard key={claim.id} claim={claim} />
                 ))}

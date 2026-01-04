@@ -78,7 +78,7 @@ const ClaimsList: React.FC = () => {
         subtitle={`${filteredClaims.length} dossier(s) trouvé(s)`}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
         {/* Message informatif pour les clients */}
         {user?.role === 'assure' && (
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
@@ -89,21 +89,21 @@ const ClaimsList: React.FC = () => {
         )}
 
         {/* Filters Bar */}
-        <Card className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <Card className="p-3 lg:p-4">
+          <div className="flex flex-col gap-3 lg:gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Rechercher par n° dossier, police, description..."
+                placeholder="Rechercher par n° dossier, police..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2 lg:gap-3">
               <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as ClaimStatus | 'all')}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <Filter className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Statut" />
                 </SelectTrigger>
@@ -116,7 +116,7 @@ const ClaimsList: React.FC = () => {
               </Select>
 
               <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ClaimType | 'all')}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SlidersHorizontal className="h-4 w-4 mr-2" />
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
@@ -146,10 +146,11 @@ const ClaimsList: React.FC = () => {
               </div>
 
               {(hasPermission('claims.create') || hasPermission('*')) && (
-                <Link to="/claims/new">
-                  <Button>
+                <Link to="/claims/new" className="flex-1 sm:flex-none">
+                  <Button className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
-                    Nouveau sinistre
+                    <span className="hidden sm:inline">Nouveau sinistre</span>
+                    <span className="sm:hidden">Nouveau</span>
                   </Button>
                 </Link>
               )}
@@ -159,7 +160,7 @@ const ClaimsList: React.FC = () => {
 
         {/* Claims Display */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4">
             {filteredClaims.map((claim) => (
               <ClaimCard key={claim.id} claim={claim} />
             ))}
