@@ -52,7 +52,7 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-nsia-charcoal via-nsia-charcoal to-nsia-charcoal-light">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-secondary">
         {/* Decorative Elements */}
         <div className="absolute inset-0">
           {/* Mesh pattern overlay */}
