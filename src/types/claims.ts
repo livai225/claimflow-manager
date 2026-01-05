@@ -19,10 +19,13 @@ export type ClaimType =
 
 export type UserRole = 
   | 'admin' 
-  | 'superviseur' 
+  | 'responsable' 
   | 'gestionnaire' 
   | 'expert' 
+  | 'medecin_expert'
   | 'comptabilite' 
+  | 'direction'
+  | 'audit'
   | 'assure';
 
 export interface User {
@@ -148,10 +151,13 @@ export const TYPE_CONFIG: Record<ClaimType, { label: string; icon: LucideIcon; b
 };
 
 export const ROLE_CONFIG: Record<UserRole, { label: string; permissions: string[] }> = {
-  admin: { label: 'Administrateur', permissions: ['*'] },
-  superviseur: { label: 'Superviseur', permissions: ['claims.view', 'claims.validate', 'claims.reject', 'reports.view'] },
-  gestionnaire: { label: 'Gestionnaire', permissions: ['claims.view', 'claims.edit', 'claims.assign'] },
-  expert: { label: 'Expert', permissions: ['claims.view', 'expertise.create', 'expertise.edit'] },
-  comptabilite: { label: 'Comptabilité', permissions: ['claims.view', 'payments.create', 'payments.view'] },
-  assure: { label: 'Assuré', permissions: ['claims.view.own', 'claims.create'] },
+  admin: { label: 'Administrateur Système', permissions: ['*'] },
+  responsable: { label: 'Responsable Sinistres', permissions: ['claims.view', 'claims.validate', 'claims.reject', 'reports.view', 'users.view', 'dashboard.global', 'delays.monitor'] },
+  gestionnaire: { label: 'Gestionnaire Sinistre', permissions: ['claims.view', 'claims.edit', 'claims.assign', 'claims.instruction', 'documents.request', 'documents.upload', 'expert.designate', 'offer.prepare'] },
+  expert: { label: 'Expert Agréé', permissions: ['claims.view.assigned', 'expertise.create', 'expertise.edit', 'documents.view', 'report.upload'] },
+  medecin_expert: { label: 'Médecin Expert', permissions: ['claims.view.assigned.corporel', 'medical.report.create', 'medical.report.edit', 'documents.view.medical'] },
+  comptabilite: { label: 'Service Financier', permissions: ['claims.view.validated', 'payments.create', 'payments.view', 'payment.proof.upload'] },
+  direction: { label: 'Direction', permissions: ['dashboard.strategic', 'reports.view', 'kpi.view', 'performance.view'] },
+  audit: { label: 'Audit / Régulateur', permissions: ['claims.view.readonly', 'history.view', 'delays.verify'] },
+  assure: { label: 'Assuré', permissions: ['claims.view.own', 'claims.create', 'documents.upload.own', 'offer.accept'] },
 };

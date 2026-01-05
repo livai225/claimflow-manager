@@ -15,11 +15,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const rolePermissions: Record<UserRole, string[]> = {
   admin: ['*'],
-  superviseur: ['claims.view', 'claims.validate', 'claims.reject', 'reports.view', 'users.view'],
-  gestionnaire: ['claims.view', 'claims.edit', 'claims.assign', 'documents.upload'],
-  expert: ['claims.view', 'expertise.create', 'expertise.edit', 'documents.upload'],
-  comptabilite: ['claims.view', 'payments.create', 'payments.view', 'reports.view'],
-  assure: ['claims.view', 'claims.view.own', 'claims.create', 'documents.upload.own'],
+  responsable: ['claims.view', 'claims.validate', 'claims.reject', 'reports.view', 'users.view', 'dashboard.global', 'delays.monitor'],
+  gestionnaire: ['claims.view', 'claims.edit', 'claims.assign', 'claims.instruction', 'documents.request', 'documents.upload', 'expert.designate', 'offer.prepare'],
+  expert: ['claims.view.assigned', 'expertise.create', 'expertise.edit', 'documents.view', 'report.upload'],
+  medecin_expert: ['claims.view.assigned.corporel', 'medical.report.create', 'medical.report.edit', 'documents.view.medical'],
+  comptabilite: ['claims.view.validated', 'payments.create', 'payments.view', 'payment.proof.upload'],
+  direction: ['dashboard.strategic', 'reports.view', 'kpi.view', 'performance.view'],
+  audit: ['claims.view.readonly', 'history.view', 'delays.verify'],
+  assure: ['claims.view.own', 'claims.create', 'documents.upload.own', 'offer.accept'],
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

@@ -73,10 +73,13 @@ const Users: React.FC = () => {
         switch (role) {
             case 'admin':
                 return 'destructive';
-            case 'superviseur':
+            case 'responsable':
+            case 'direction':
                 return 'default';
             case 'gestionnaire':
                 return 'secondary';
+            case 'audit':
+                return 'outline';
             default:
                 return 'outline';
         }

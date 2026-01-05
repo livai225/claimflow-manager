@@ -36,12 +36,15 @@ const Login: React.FC = () => {
   };
 
   const demoAccounts = [
-    { email: 'admin@assurflow.gn', role: 'Administrateur', color: 'bg-purple-500' },
-    { email: 'gestionnaire@assurflow.gn', role: 'Gestionnaire', color: 'bg-blue-500' },
-    { email: 'expert@assurflow.gn', role: 'Expert', color: 'bg-emerald-500' },
-    { email: 'superviseur@assurflow.gn', role: 'Superviseur', color: 'bg-amber-500' },
-    { email: 'comptable@assurflow.gn', role: 'Comptabilité', color: 'bg-cyan-500' },
-    { email: 'client@email.gn', role: 'Assuré', color: 'bg-gray-500' },
+    { email: 'admin@nsia.gn', role: 'Administrateur', color: 'bg-purple-500' },
+    { email: 'gestionnaire@nsia.gn', role: 'Gestionnaire', color: 'bg-blue-500' },
+    { email: 'expert@nsia.gn', role: 'Expert Agréé', color: 'bg-emerald-500' },
+    { email: 'responsable@nsia.gn', role: 'Responsable', color: 'bg-amber-500' },
+    { email: 'comptable@nsia.gn', role: 'Comptabilité', color: 'bg-cyan-500' },
+    { email: 'medecin@nsia.gn', role: 'Médecin Expert', color: 'bg-red-500' },
+    { email: 'direction@nsia.gn', role: 'Direction', color: 'bg-indigo-500' },
+    { email: 'audit@regulateur.gn', role: 'Audit', color: 'bg-gray-500' },
+    { email: 'client@email.gn', role: 'Assuré', color: 'bg-orange-500' },
   ];
 
   const handleDemoLogin = (demoEmail: string) => {
