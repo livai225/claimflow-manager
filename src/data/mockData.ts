@@ -101,7 +101,7 @@ const createParticipants = (claim: Pick<Claim, 'declarant' | 'assignedTo' | 'exp
 export const mockUsers: User[] = [
   {
     id: 'user-1',
-    email: 'admin@assurflow.gn',
+    email: 'admin@nsia.gn',
     name: 'Mamadou Diallo',
     role: 'admin',
     avatar: 'MD',
@@ -109,7 +109,7 @@ export const mockUsers: User[] = [
   },
   {
     id: 'user-2',
-    email: 'gestionnaire@assurflow.gn',
+    email: 'gestionnaire@nsia.gn',
     name: 'Fatoumata Camara',
     role: 'gestionnaire',
     avatar: 'FC',
@@ -117,7 +117,7 @@ export const mockUsers: User[] = [
   },
   {
     id: 'user-3',
-    email: 'expert@assurflow.gn',
+    email: 'expert@nsia.gn',
     name: 'Ibrahima Sow',
     role: 'expert',
     avatar: 'IS',
@@ -125,15 +125,15 @@ export const mockUsers: User[] = [
   },
   {
     id: 'user-4',
-    email: 'superviseur@assurflow.gn',
+    email: 'responsable@nsia.gn',
     name: 'Aissatou Bah',
-    role: 'superviseur',
+    role: 'responsable',
     avatar: 'AB',
     createdAt: new Date('2023-02-28'),
   },
   {
     id: 'user-5',
-    email: 'comptable@assurflow.gn',
+    email: 'comptable@nsia.gn',
     name: 'Ousmane Kouyaté',
     role: 'comptabilite',
     avatar: 'OK',
@@ -146,6 +146,30 @@ export const mockUsers: User[] = [
     role: 'assure',
     avatar: 'KC',
     createdAt: new Date('2024-01-10'),
+  },
+  {
+    id: 'user-7',
+    email: 'medecin@nsia.gn',
+    name: 'Dr. Amadou Barry',
+    role: 'medecin_expert',
+    avatar: 'AB',
+    createdAt: new Date('2023-06-01'),
+  },
+  {
+    id: 'user-8',
+    email: 'direction@nsia.gn',
+    name: 'Mariama Sylla',
+    role: 'direction',
+    avatar: 'MS',
+    createdAt: new Date('2022-12-01'),
+  },
+  {
+    id: 'user-9',
+    email: 'audit@regulateur.gn',
+    name: 'Sékou Touré',
+    role: 'audit',
+    avatar: 'ST',
+    createdAt: new Date('2024-02-15'),
   },
 ];
 

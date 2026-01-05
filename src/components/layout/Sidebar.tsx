@@ -28,7 +28,7 @@ const navigation = [
   { name: 'Paiements', href: '/payments', icon: CreditCard, permission: 'payments.view' },
   { name: 'Rapports', href: '/reports', icon: BarChart3, permission: 'reports.view' },
   { name: 'Utilisateurs', href: '/users', icon: Users, permission: 'users.view' },
-  { name: 'Intervenants', href: '/participants', icon: UserCircle, permission: 'users.view' },
+  { name: 'Intervenants', href: '/participants', icon: UserCircle, permission: 'claims.view' },
   { name: 'Administration', href: '/admin', icon: Settings, permission: '*' },
 ];
 
