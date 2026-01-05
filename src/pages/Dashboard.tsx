@@ -4,6 +4,9 @@ import { Header } from '@/components/layout/Header';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ClaimCard } from '@/components/claims/ClaimCard';
 import { InsuredDashboard } from '@/components/dashboard/InsuredDashboard';
+import { DirectionDashboard } from '@/components/dashboard/DirectionDashboard';
+import { ResponsableDashboard } from '@/components/dashboard/ResponsableDashboard';
+import { AuditDashboard } from '@/components/dashboard/AuditDashboard';
 import { useClaims } from '@/contexts/ClaimsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,14 +43,9 @@ const Dashboard: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    // Calcul du délai moyen de traitement (approximatif pour les besoins du dashboard)
-    // On considère la différence entre createdAt et maintenant pour les dossiers non clos
-    // ou createdAt et la date de clôture (si disponible) pour les dossiers clos
-    // Pour simplifier, on utilisera une moyenne basée sur les dates de déclaration et d'incident
     const avgProcessingDays = dashboardClaims.length > 0
       ? Math.round(dashboardClaims.reduce((acc, curr) => {
         const start = curr.dateDeclaration.getTime();
-        // Idéalement on utiliserait une propriété closedAt, mais on va utiliser updatedAd ou aujourd'hui
         const end = curr.status === 'clos' ? (curr.updatedAt?.getTime() || Date.now()) : Date.now();
         const days = Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
         return acc + days;
@@ -90,184 +88,211 @@ const Dashboard: React.FC = () => {
       value: count,
     }));
 
+  // Déterminer le sous-titre selon le rôle
+  const getSubtitle = () => {
+    switch (user?.role) {
+      case 'assure': return 'Suivez l\'état de vos dossiers en temps réel';
+      case 'direction': return 'Vue stratégique et indicateurs de performance';
+      case 'responsable': return 'Supervision des équipes et suivi des délais';
+      case 'audit': return 'Consultation et vérification de conformité';
+      default: return "Voici un aperçu de l'activité sinistres";
+    }
+  };
+
+  // Rendu conditionnel du dashboard selon le rôle
+  const renderDashboardContent = () => {
+    switch (user?.role) {
+      case 'assure':
+        return <InsuredDashboard claims={dashboardClaims} />;
+      case 'direction':
+        return <DirectionDashboard claims={dashboardClaims} />;
+      case 'responsable':
+        return <ResponsableDashboard claims={dashboardClaims} />;
+      case 'audit':
+        return <AuditDashboard claims={dashboardClaims} />;
+      default:
+        return renderDefaultDashboard();
+    }
+  };
+
+  const renderDefaultDashboard = () => (
+    <>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        <StatsCard
+          title="Total sinistres"
+          value={stats.totalClaims}
+          subtitle="Tous statuts confondus"
+          icon={FileText}
+          variant="primary"
+        />
+        <StatsCard
+          title="Dossiers ouverts"
+          value={stats.openClaims}
+          subtitle="En cours de traitement"
+          icon={Clock}
+          variant="warning"
+          trend={{ value: 12, isPositive: false }}
+        />
+        <StatsCard
+          title="Dossiers clôturés"
+          value={stats.closedClaims}
+          subtitle="Ce mois"
+          icon={CheckCircle}
+          variant="success"
+          trend={{ value: 8, isPositive: true }}
+        />
+        <StatsCard
+          title="Montant indemnisé"
+          value={formatGNF(stats.totalPaid)}
+          subtitle="Total des paiements"
+          icon={Euro}
+        />
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+        {/* Status Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Répartition par statut</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-3 justify-center mt-4">
+              {statusData.map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-sm text-muted-foreground">
+                    {item.name} ({item.value})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Type Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sinistres par type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={typeData} layout="vertical">
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
+                    radius={[0, 4, 4, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Performance Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-primary/10">
+              <TrendingUp className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Délai moyen de traitement</p>
+              <p className="text-2xl font-bold">{stats.avgProcessingDays} jours</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-status-success/10">
+              <CheckCircle className="h-6 w-6 text-status-success" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Taux d'approbation</p>
+              <p className="text-2xl font-bold">87%</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-status-warning/10">
+              <AlertTriangle className="h-6 w-6 text-status-warning" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total payé</p>
+              <p className="text-2xl font-bold">{formatGNF(stats.totalPaid)}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Recent Claims */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Sinistres récents</h2>
+          <a href="/claims" className="text-sm text-primary hover:underline">
+            Voir tous les sinistres →
+          </a>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
+          {recentClaims.map((claim) => (
+            <ClaimCard key={claim.id} claim={claim} />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="min-h-screen">
       <Header
         title={`Bonjour, ${user?.name?.split(' ')[0]}`}
-        subtitle={user?.role === 'assure' ? 'Suivez l\'état de vos dossiers en temps réel' : "Voici un aperçu de l'activité sinistres"}
+        subtitle={getSubtitle()}
       />
 
       <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
-        {user?.role === 'assure' ? (
-          <InsuredDashboard claims={dashboardClaims} />
-        ) : (
-          <>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-              <StatsCard
-                title="Total sinistres"
-                value={stats.totalClaims}
-                subtitle="Tous statuts confondus"
-                icon={FileText}
-                variant="primary"
-              />
-              <StatsCard
-                title="Dossiers ouverts"
-                value={stats.openClaims}
-                subtitle="En cours de traitement"
-                icon={Clock}
-                variant="warning"
-                trend={{ value: 12, isPositive: false }}
-              />
-              <StatsCard
-                title="Dossiers clôturés"
-                value={stats.closedClaims}
-                subtitle="Ce mois"
-                icon={CheckCircle}
-                variant="success"
-                trend={{ value: 8, isPositive: true }}
-              />
-              <StatsCard
-                title="Montant indemnisé"
-                value={formatGNF(stats.totalPaid)}
-                subtitle="Total des paiements"
-                icon={Euro}
-              />
-            </div>
-
-            {/* Charts Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-              {/* Status Distribution */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Répartition par statut</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={statusData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
-                          dataKey="value"
-                        >
-                          {statusData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex flex-wrap gap-3 justify-center mt-4">
-                    {statusData.map((item, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <div
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          {item.name} ({item.value})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Type Distribution */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Sinistres par type</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={typeData} layout="vertical">
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'hsl(var(--card))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px'
-                          }}
-                        />
-                        <Bar
-                          dataKey="value"
-                          fill="hsl(var(--primary))"
-                          radius={[0, 4, 4, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
-              <Card className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-primary/10">
-                    <TrendingUp className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Délai moyen de traitement</p>
-                    <p className="text-2xl font-bold">{stats.avgProcessingDays} jours</p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-status-success/10">
-                    <CheckCircle className="h-6 w-6 text-status-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Taux d'approbation</p>
-                    <p className="text-2xl font-bold">87%</p>
-                  </div>
-                </div>
-              </Card>
-              <Card className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-status-warning/10">
-                    <AlertTriangle className="h-6 w-6 text-status-warning" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total payé</p>
-                    <p className="text-2xl font-bold">{formatGNF(stats.totalPaid)}</p>
-                  </div>
-                </div>
-              </Card>
-            </div>
-
-            {/* Recent Claims */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold">Sinistres récents</h2>
-                <a href="/claims" className="text-sm text-primary hover:underline">
-                  Voir tous les sinistres →
-                </a>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-4">
-                {recentClaims.map((claim) => (
-                  <ClaimCard key={claim.id} claim={claim} />
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+        {renderDashboardContent()}
       </div>
     </div>
   );
