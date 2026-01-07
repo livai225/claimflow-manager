@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ClaimsProvider } from "@/contexts/ClaimsContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import Login from "@/pages/Login";
+import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import ClaimsList from "@/pages/ClaimsList";
 import ClaimDetail from "@/pages/ClaimDetail";
@@ -31,6 +32,7 @@ const App = () => (
           <ClaimsProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
