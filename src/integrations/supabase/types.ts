@@ -14,16 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      claim_events: {
+        Row: {
+          claim_id: string
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claim_events_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claim_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      claims: {
+        Row: {
+          amount_approved: number | null
+          amount_claimed: number | null
+          amount_paid: number | null
+          claim_number: string
+          created_at: string
+          declarant_id: string
+          declaration_date: string
+          description: string
+          expert_id: string | null
+          gestionnaire_id: string | null
+          id: string
+          incident_date: string
+          location: string | null
+          medecin_id: string | null
+          policy_number: string
+          status: Database["public"]["Enums"]["claim_status"]
+          type: Database["public"]["Enums"]["claim_type"]
+          updated_at: string
+        }
+        Insert: {
+          amount_approved?: number | null
+          amount_claimed?: number | null
+          amount_paid?: number | null
+          claim_number: string
+          created_at?: string
+          declarant_id: string
+          declaration_date?: string
+          description: string
+          expert_id?: string | null
+          gestionnaire_id?: string | null
+          id?: string
+          incident_date: string
+          location?: string | null
+          medecin_id?: string | null
+          policy_number: string
+          status?: Database["public"]["Enums"]["claim_status"]
+          type: Database["public"]["Enums"]["claim_type"]
+          updated_at?: string
+        }
+        Update: {
+          amount_approved?: number | null
+          amount_claimed?: number | null
+          amount_paid?: number | null
+          claim_number?: string
+          created_at?: string
+          declarant_id?: string
+          declaration_date?: string
+          description?: string
+          expert_id?: string | null
+          gestionnaire_id?: string | null
+          id?: string
+          incident_date?: string
+          location?: string | null
+          medecin_id?: string | null
+          policy_number?: string
+          status?: Database["public"]["Enums"]["claim_status"]
+          type?: Database["public"]["Enums"]["claim_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "claims_declarant_id_fkey"
+            columns: ["declarant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_expert_id_fkey"
+            columns: ["expert_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_gestionnaire_id_fkey"
+            columns: ["gestionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "claims_medecin_id_fkey"
+            columns: ["medecin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          claim_id: string
+          created_at: string
+          id: string
+          name: string
+          type: string
+          uploaded_by: string
+          url: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          id?: string
+          name: string
+          type: string
+          uploaded_by: string
+          url: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          uploaded_by?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar?: string | null
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_roles: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "responsable"
+        | "gestionnaire"
+        | "expert"
+        | "medecin_expert"
+        | "comptabilite"
+        | "direction"
+        | "audit"
+        | "assure"
+      claim_status:
+        | "declaration"
+        | "instruction"
+        | "expertise"
+        | "offre"
+        | "acceptation"
+        | "paiement"
+        | "cloture"
+        | "rejete"
+      claim_type:
+        | "automobile"
+        | "habitation"
+        | "sante"
+        | "vie"
+        | "responsabilite_civile"
+        | "autre"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +422,36 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "responsable",
+        "gestionnaire",
+        "expert",
+        "medecin_expert",
+        "comptabilite",
+        "direction",
+        "audit",
+        "assure",
+      ],
+      claim_status: [
+        "declaration",
+        "instruction",
+        "expertise",
+        "offre",
+        "acceptation",
+        "paiement",
+        "cloture",
+        "rejete",
+      ],
+      claim_type: [
+        "automobile",
+        "habitation",
+        "sante",
+        "vie",
+        "responsabilite_civile",
+        "autre",
+      ],
+    },
   },
 } as const
