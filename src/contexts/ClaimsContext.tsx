@@ -1,80 +1,94 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Claim, ClaimStatus, DashboardStats, ProcessStep, Participant, User, Expertise, ClaimEvent } from '@/types/claims';
-import { mockClaims, mockDashboardStats, mockUsers } from '@/data/mockData';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { Claim, ClaimStatus, DashboardStats, ProcessStep, Participant, User, Expertise, ClaimEvent, ClaimType } from '@/types/claims';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
 
- const createInitialSteps = (): ProcessStep[] => [
-   {
-     id: 'declaration',
-     title: '1. Déclaration du sinistre',
-     description: [
-       "Délai de 5 jours pour déclarer le sinistre à l'assureur dès sa connaissance (Article 27, paragraphe 4 du Code des assurances).",
-       'À la réception de la déclaration :',
-       '• Accuser réception',
-       '• Demander les pièces de procédure',
-       "• Mandater un expert pour l'évaluation des dommages",
-       '• Attribuer un numéro de sinistre au dossier',
-     ],
-     status: 'in_progress',
-     startedAt: new Date(),
-     requiredActions: ['Vérifier les documents fournis', 'Assigner un gestionnaire', "Passer à l'analyse"],
-   },
-   {
-     id: 'instruction',
-     title: "2. Phase d'instruction",
-     description: [
-       'À la réception des pièces de procédure :',
-       "• Délivrer un acte de nomination à l'expert mandaté",
-       "• Délai de 2 semaines pour le dépôt des conclusions de l'expert",
-       '\nPour les sinistres corporels :',
-       "• Délivrer un bon de prise en charge pour l'hôpital",
-       "• Délivrer une lettre de demande d'informations pour la victime ou les ayants droit (Articles 81 et 89 du Code des assurances)",
-     ],
-     status: 'pending',
-     requiredActions: ['Attendre les pièces de procédure', 'Désigner un expert si nécessaire', 'Délivrer les documents requis'],
-   },
-   {
-     id: 'expertise',
-     title: '3. Expertise et évaluation',
-     description: [
-       "L'expert doit évaluer les dommages et fournir un rapport détaillé.",
-       "L'expert dispose d'un délai de 15 jours pour rendre son rapport.",
-       'Le rapport doit inclure :',
-       '• L\u2019évaluation des dommages',
-       '• Les causes du sinistre',
-       '• Les mesures de prévention recommandées',
-     ],
-     status: 'pending',
-     requiredActions: ["Attendre le rapport d'expertise", "Valider l'estimation des dommages", 'Préparer le dossier pour validation'],
-   },
-   {
-     id: 'validation',
-     title: '4. Validation et décision',
-     description: [
-       "Le gestionnaire doit valider le rapport d'expertise.",
-       "En cas d'accord, préparer la proposition d'indemnisation.",
-       "En cas de désaccord, demander des compléments d'information.",
-       'Transmettre la décision au service compétent pour le paiement.',
-     ],
-     status: 'pending',
-     requiredActions: ['Réviser le montant proposé', 'Approuver ou rejeter le dossier', 'Notifier le déclarant'],
-   },
-   {
-     id: 'paiement',
-     title: '5. Paiement et clôture',
-     description: [
-       "Préparer l'ordre de paiement.",
-       'Vérifier les coordonnées bancaires du bénéficiaire.',
-       'Effectuer le virement bancaire.',
-       'Archiver le dossier une fois le paiement effectué.',
-     ],
-     status: 'pending',
-     requiredActions: ["Préparer l'ordre de paiement", 'Vérifier les coordonnées bancaires', 'Effectuer le virement'],
-   },
- ];
+type DBClaimStatus = Database['public']['Enums']['claim_status'];
+type DBClaimType = Database['public']['Enums']['claim_type'];
+
+// Mapping entre les types DB et les types frontend
+const statusMapping: Record<DBClaimStatus, ClaimStatus> = {
+  declaration: 'ouvert',
+  instruction: 'en_analyse',
+  expertise: 'en_expertise',
+  offre: 'en_validation',
+  acceptation: 'approuve',
+  paiement: 'paye',
+  cloture: 'clos',
+  rejete: 'rejete',
+};
+
+const typeMapping: Record<DBClaimType, ClaimType> = {
+  automobile: 'auto',
+  habitation: 'habitation',
+  sante: 'sante',
+  vie: 'vie',
+  responsabilite_civile: 'responsabilite_civile',
+  autre: 'auto', // fallback
+};
+
+const createInitialSteps = (): ProcessStep[] => [
+  {
+    id: 'declaration',
+    title: '1. Déclaration du sinistre',
+    description: [
+      "Délai de 5 jours pour déclarer le sinistre à l'assureur dès sa connaissance.",
+      'À la réception de la déclaration :',
+      '• Accuser réception',
+      '• Demander les pièces de procédure',
+      "• Mandater un expert pour l'évaluation des dommages",
+    ],
+    status: 'in_progress',
+    startedAt: new Date(),
+    requiredActions: ['Vérifier les documents fournis', 'Assigner un gestionnaire'],
+  },
+  {
+    id: 'instruction',
+    title: "2. Phase d'instruction",
+    description: [
+      'À la réception des pièces de procédure :',
+      "• Délivrer un acte de nomination à l'expert mandaté",
+      "• Délai de 2 semaines pour le dépôt des conclusions de l'expert",
+    ],
+    status: 'pending',
+    requiredActions: ['Attendre les pièces de procédure', 'Désigner un expert si nécessaire'],
+  },
+  {
+    id: 'expertise',
+    title: '3. Expertise et évaluation',
+    description: [
+      "L'expert doit évaluer les dommages et fournir un rapport détaillé.",
+      "L'expert dispose d'un délai de 15 jours pour rendre son rapport.",
+    ],
+    status: 'pending',
+    requiredActions: ["Attendre le rapport d'expertise", "Valider l'estimation des dommages"],
+  },
+  {
+    id: 'validation',
+    title: '4. Validation et décision',
+    description: [
+      "Le gestionnaire doit valider le rapport d'expertise.",
+      "En cas d'accord, préparer la proposition d'indemnisation.",
+    ],
+    status: 'pending',
+    requiredActions: ['Réviser le montant proposé', 'Approuver ou rejeter le dossier'],
+  },
+  {
+    id: 'paiement',
+    title: '5. Paiement et clôture',
+    description: [
+      "Préparer l'ordre de paiement.",
+      'Vérifier les coordonnées bancaires du bénéficiaire.',
+    ],
+    status: 'pending',
+    requiredActions: ["Préparer l'ordre de paiement", 'Effectuer le virement'],
+  },
+];
 
 interface ClaimsContextType {
   claims: Claim[];
   stats: DashboardStats;
+  isLoading: boolean;
   getClaimById: (id: string) => Claim | undefined;
   updateClaimStatus: (id: string, status: ClaimStatus) => void;
   addClaim: (claim: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'processSteps' | 'currentStepId' | 'participants' | 'expert'>) => Claim;
@@ -83,35 +97,8 @@ interface ClaimsContextType {
   completeProcessStep: (claimId: string, stepId: string) => void;
   startProcessStep: (claimId: string, stepId: string) => void;
   upsertClaimExpertise: (claimId: string, input: { report?: string; estimatedAmount?: number; status: Expertise['status']; scheduledDate?: Date; completedDate?: Date; user: User }) => void;
+  refreshClaims: () => Promise<void>;
 }
-
-const buildParticipants = (args: { declarant: User; assignedTo?: User; expert?: User }): Participant[] => {
-  const participants: Participant[] = [
-    {
-      ...args.declarant,
-      role: args.declarant.role,
-      roleLabel: 'Déclarant',
-    },
-  ];
-
-  if (args.assignedTo) {
-    participants.push({
-      ...args.assignedTo,
-      role: args.assignedTo.role,
-      roleLabel: 'Gestionnaire',
-    });
-  }
-
-  if (args.expert) {
-    participants.push({
-      ...args.expert,
-      role: args.expert.role,
-      roleLabel: 'Expert',
-    });
-  }
-
-  return participants;
-};
 
 interface ClaimFilters {
   status?: ClaimStatus[];
@@ -123,26 +110,180 @@ interface ClaimFilters {
 
 const ClaimsContext = createContext<ClaimsContextType | undefined>(undefined);
 
+// Helper pour convertir les données DB en type Claim frontend
+const convertDBClaimToClaim = (dbClaim: any): Claim => {
+  const declarant: User = dbClaim.declarant ? {
+    id: dbClaim.declarant.id,
+    email: dbClaim.declarant.email,
+    name: dbClaim.declarant.name || 'Utilisateur',
+    role: 'assure',
+    avatar: dbClaim.declarant.avatar,
+    createdAt: new Date(dbClaim.declarant.created_at || dbClaim.created_at),
+  } : {
+    id: dbClaim.declarant_id,
+    email: '',
+    name: 'Utilisateur',
+    role: 'assure',
+    createdAt: new Date(),
+  };
+
+  const gestionnaire: User | undefined = dbClaim.gestionnaire ? {
+    id: dbClaim.gestionnaire.id,
+    email: dbClaim.gestionnaire.email,
+    name: dbClaim.gestionnaire.name || 'Gestionnaire',
+    role: 'gestionnaire',
+    avatar: dbClaim.gestionnaire.avatar,
+    createdAt: new Date(),
+  } : undefined;
+
+  const expert: User | undefined = dbClaim.expert ? {
+    id: dbClaim.expert.id,
+    email: dbClaim.expert.email,
+    name: dbClaim.expert.name || 'Expert',
+    role: 'expert',
+    avatar: dbClaim.expert.avatar,
+    createdAt: new Date(),
+  } : undefined;
+
+  const participants: Participant[] = [
+    { ...declarant, roleLabel: 'Déclarant' },
+  ];
+  if (gestionnaire) {
+    participants.push({ ...gestionnaire, roleLabel: 'Gestionnaire' });
+  }
+  if (expert) {
+    participants.push({ ...expert, roleLabel: 'Expert' });
+  }
+
+  const documents = (dbClaim.documents || []).map((doc: any) => ({
+    id: doc.id,
+    name: doc.name,
+    type: doc.type,
+    url: doc.url,
+    uploadedAt: new Date(doc.created_at),
+    uploadedBy: declarant,
+  }));
+
+  const events: ClaimEvent[] = (dbClaim.claim_events || []).map((evt: any) => ({
+    id: evt.id,
+    type: evt.event_type as ClaimEvent['type'],
+    description: evt.description,
+    date: new Date(evt.created_at),
+    user: evt.user ? {
+      id: evt.user_id,
+      email: '',
+      name: evt.user?.name || 'Système',
+      role: 'gestionnaire' as const,
+      avatar: evt.user?.avatar,
+      createdAt: new Date(),
+    } : declarant,
+  }));
+
+  const dbStatus = dbClaim.status as DBClaimStatus;
+  const dbType = dbClaim.type as DBClaimType;
+
+  return {
+    id: dbClaim.claim_number || dbClaim.id,
+    policyNumber: dbClaim.policy_number,
+    type: typeMapping[dbType] || 'auto',
+    status: statusMapping[dbStatus] || 'ouvert',
+    declarant,
+    assignedTo: gestionnaire,
+    expert,
+    participants,
+    dateIncident: new Date(dbClaim.incident_date),
+    dateDeclaration: new Date(dbClaim.declaration_date),
+    location: dbClaim.location || '',
+    description: dbClaim.description,
+    estimatedAmount: dbClaim.amount_claimed ? Number(dbClaim.amount_claimed) : undefined,
+    approvedAmount: dbClaim.amount_approved ? Number(dbClaim.amount_approved) : undefined,
+    paidAmount: dbClaim.amount_paid ? Number(dbClaim.amount_paid) : undefined,
+    documents,
+    events,
+    processSteps: createInitialSteps(),
+    currentStepId: 'declaration',
+    createdAt: new Date(dbClaim.created_at),
+    updatedAt: new Date(dbClaim.updated_at),
+  };
+};
+
 export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [claims, setClaims] = useState<Claim[]>(() =>
-    mockClaims.map(claim => {
-      if (claim.processSteps?.length && claim.currentStepId) return claim;
-      return {
-        ...claim,
-        processSteps: createInitialSteps(),
-        currentStepId: 'declaration',
-      };
-    })
-  );
-  const [stats] = useState<DashboardStats>(mockDashboardStats);
+  const [claims, setClaims] = useState<Claim[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalClaims: 0,
+    openClaims: 0,
+    closedClaims: 0,
+    totalPaid: 0,
+    avgProcessingDays: 0,
+    claimsByStatus: {} as Record<ClaimStatus, number>,
+    claimsByType: {} as Record<ClaimType, number>,
+  });
+
+  const fetchClaims = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('claims')
+        .select(`
+          *,
+          declarant:profiles!claims_declarant_id_fkey(id, name, email, avatar, created_at),
+          gestionnaire:profiles!claims_gestionnaire_id_fkey(id, name, email, avatar),
+          expert:profiles!claims_expert_id_fkey(id, name, email, avatar),
+          documents(*),
+          claim_events(*, user:profiles(name, avatar))
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching claims:', error);
+        return;
+      }
+
+      const convertedClaims = (data || []).map(convertDBClaimToClaim);
+      setClaims(convertedClaims);
+
+      // Calculate stats
+      const totalClaims = convertedClaims.length;
+      const openClaims = convertedClaims.filter(c => !['clos', 'paye', 'rejete'].includes(c.status)).length;
+      const closedClaims = convertedClaims.filter(c => c.status === 'clos').length;
+      const totalPaid = convertedClaims.reduce((acc, c) => acc + (c.paidAmount || 0), 0);
+
+      const claimsByStatus = convertedClaims.reduce((acc, c) => {
+        acc[c.status] = (acc[c.status] || 0) + 1;
+        return acc;
+      }, {} as Record<ClaimStatus, number>);
+
+      const claimsByType = convertedClaims.reduce((acc, c) => {
+        acc[c.type] = (acc[c.type] || 0) + 1;
+        return acc;
+      }, {} as Record<ClaimType, number>);
+
+      setStats({
+        totalClaims,
+        openClaims,
+        closedClaims,
+        totalPaid,
+        avgProcessingDays: 0,
+        claimsByStatus,
+        claimsByType,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchClaims();
+  }, [fetchClaims]);
 
   const getClaimById = useCallback((id: string) => {
     return claims.find(c => c.id === id);
   }, [claims]);
 
   const updateClaimStatus = useCallback((id: string, status: ClaimStatus) => {
-    setClaims(prev => prev.map(claim => 
-      claim.id === id 
+    setClaims(prev => prev.map(claim =>
+      claim.id === id
         ? { ...claim, status, updatedAt: new Date() }
         : claim
     ));
@@ -150,14 +291,10 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addClaim = useCallback((claimData: Omit<Claim, 'id' | 'createdAt' | 'updatedAt' | 'processSteps' | 'currentStepId' | 'participants' | 'expert'>): Claim => {
     const initialSteps = createInitialSteps();
-
-    const defaultExpert = mockUsers.find(u => u.role === 'expert');
-
     const newClaim: Claim = {
       ...claimData,
       id: `CLM-${new Date().getFullYear()}-${String(claims.length + 1).padStart(3, '0')}`,
-      expert: defaultExpert,
-      participants: buildParticipants({ declarant: claimData.declarant, assignedTo: claimData.assignedTo, expert: defaultExpert }),
+      participants: [{ ...claimData.declarant, roleLabel: 'Déclarant' }],
       processSteps: initialSteps,
       currentStepId: 'declaration',
       createdAt: new Date(),
@@ -173,7 +310,7 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (filters.type?.length && !filters.type.includes(claim.type)) return false;
       if (filters.search) {
         const search = filters.search.toLowerCase();
-        if (!claim.id.toLowerCase().includes(search) && 
+        if (!claim.id.toLowerCase().includes(search) &&
             !claim.policyNumber.toLowerCase().includes(search) &&
             !claim.description.toLowerCase().includes(search)) {
           return false;
@@ -188,77 +325,46 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const updateProcessStep = useCallback((claimId: string, stepId: string, updates: Partial<ProcessStep>) => {
     setClaims(prev => prev.map(claim => {
       if (claim.id !== claimId) return claim;
-      
-      const updatedSteps = claim.processSteps.map(step => 
+      const updatedSteps = claim.processSteps.map(step =>
         step.id === stepId ? { ...step, ...updates } : step
       );
-      
-      return {
-        ...claim,
-        processSteps: updatedSteps,
-        updatedAt: new Date()
-      };
+      return { ...claim, processSteps: updatedSteps, updatedAt: new Date() };
     }));
   }, []);
 
   const completeProcessStep = useCallback((claimId: string, stepId: string) => {
-    setClaims(prev => 
+    setClaims(prev =>
       prev.map(claim => {
         if (claim.id !== claimId) return claim;
-        
-        const updatedSteps = claim.processSteps.map(step => 
-          step.id === stepId 
-            ? { 
-                ...step, 
-                status: 'completed' as const, // Type assertion here
-                completedAt: new Date() 
-              } 
-            : step
+        const updatedSteps = claim.processSteps.map(step =>
+          step.id === stepId ? { ...step, status: 'completed' as const, completedAt: new Date() } : step
         );
-
-        // Trouver l'index de l'étape actuelle
         const currentIndex = claim.processSteps.findIndex(step => step.id === stepId);
         const nextStep = claim.processSteps[currentIndex + 1];
-        
-        // Créer une copie mise à jour de la réclamation
-        const updatedClaim: Claim = {
+        return {
           ...claim,
           processSteps: updatedSteps,
           currentStepId: nextStep?.id || stepId,
           status: nextStep ? claim.status : 'clos',
           updatedAt: new Date()
         };
-
-        return updatedClaim;
       })
     );
   }, []);
 
   const startProcessStep = useCallback((claimId: string, stepId: string) => {
-    updateProcessStep(claimId, stepId, { 
-      status: 'in_progress',
-      startedAt: new Date() 
-    });
+    updateProcessStep(claimId, stepId, { status: 'in_progress', startedAt: new Date() });
   }, [updateProcessStep]);
 
   const upsertClaimExpertise = useCallback((
     claimId: string,
-    input: {
-      report?: string;
-      estimatedAmount?: number;
-      status: Expertise['status'];
-      scheduledDate?: Date;
-      completedDate?: Date;
-      user: User;
-    }
+    input: { report?: string; estimatedAmount?: number; status: Expertise['status']; scheduledDate?: Date; completedDate?: Date; user: User }
   ) => {
     setClaims(prev =>
       prev.map(claim => {
         if (claim.id !== claimId) return claim;
-
         const now = new Date();
         const existing = claim.expertise;
-
         const expertise: Expertise = {
           id: existing?.id ?? `exp-${Date.now()}`,
           claimId: claim.id,
@@ -270,7 +376,6 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           estimatedAmount: input.estimatedAmount ?? existing?.estimatedAmount,
           createdAt: existing?.createdAt ?? now,
         };
-
         const newEvent: ClaimEvent = {
           id: `evt-expertise-${Date.now()}`,
           type: 'expertise',
@@ -278,13 +383,7 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           date: now,
           user: input.user,
         };
-
-        return {
-          ...claim,
-          expertise,
-          events: [newEvent, ...claim.events],
-          updatedAt: now,
-        };
+        return { ...claim, expertise, events: [newEvent, ...claim.events], updatedAt: now };
       })
     );
   }, []);
@@ -293,6 +392,7 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <ClaimsContext.Provider value={{
       claims,
       stats,
+      isLoading,
       getClaimById,
       updateClaimStatus,
       addClaim,
@@ -301,6 +401,7 @@ export const ClaimsProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       completeProcessStep,
       startProcessStep,
       upsertClaimExpertise,
+      refreshClaims: fetchClaims,
     }}>
       {children}
     </ClaimsContext.Provider>
