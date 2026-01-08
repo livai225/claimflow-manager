@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, MapPin, User, FileText, Download,
-  Clock, CheckCircle, AlertTriangle, MessageSquare, Phone, Mail, Building2, X
+  Clock, CheckCircle, AlertTriangle, MessageSquare, Phone, Mail, Building2, X, Loader2
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { StatusBadge } from '@/components/claims/StatusBadge';
@@ -34,12 +34,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const statusFlow: ClaimStatus[] = ['ouvert', 'en_analyse', 'en_expertise', 'en_validation', 'approuve', 'paye', 'clos'];
 
 const ClaimDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { getClaimById, updateClaimStatus, upsertClaimExpertise } = useClaims();
+  const { getClaimById, updateClaimStatus, upsertClaimExpertise, refreshClaims, isLoading: claimsLoading } = useClaims();
   const { hasPermission, user } = useAuth();
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -48,6 +50,7 @@ const ClaimDetail: React.FC = () => {
   const [expertiseCompletedDate, setExpertiseCompletedDate] = useState<string>('');
   const [expertiseEstimatedAmount, setExpertiseEstimatedAmount] = useState<string>('');
   const [expertiseReport, setExpertiseReport] = useState<string>('');
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
 
   const formatGNF = (amount: number) => {
     return new Intl.NumberFormat('fr-GN', {
@@ -58,6 +61,25 @@ const ClaimDetail: React.FC = () => {
   };
 
   const claim = getClaimById(id || '');
+
+  React.useEffect(() => {
+    const exp = claim?.expertise;
+    if (!exp) return;
+
+    setExpertiseStatus(exp.status);
+    setExpertiseScheduledDate(exp.scheduledDate ? format(exp.scheduledDate, 'yyyy-MM-dd') : '');
+    setExpertiseCompletedDate(exp.completedDate ? format(exp.completedDate, 'yyyy-MM-dd') : '');
+    setExpertiseEstimatedAmount(exp.estimatedAmount != null ? String(exp.estimatedAmount) : '');
+    setExpertiseReport(exp.report ?? '');
+  }, [claim?.expertise]);
+
+  if (claimsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!claim) {
     return (
@@ -82,20 +104,40 @@ const ClaimDetail: React.FC = () => {
   const isMandatedExpert = user?.role === 'expert' && claim.expert?.id === user.id;
   const canEditExpertise = isMandatedExpert && (hasPermission('expertise.edit') || hasPermission('expertise.create') || hasPermission('*'));
 
-  React.useEffect(() => {
-    const exp = claim.expertise;
-    if (!exp) return;
-
-    setExpertiseStatus(exp.status);
-    setExpertiseScheduledDate(exp.scheduledDate ? format(exp.scheduledDate, 'yyyy-MM-dd') : '');
-    setExpertiseCompletedDate(exp.completedDate ? format(exp.completedDate, 'yyyy-MM-dd') : '');
-    setExpertiseEstimatedAmount(exp.estimatedAmount != null ? String(exp.estimatedAmount) : '');
-    setExpertiseReport(exp.report ?? '');
-  }, [claim.expertise]);
-
-  const handleUserClick = (user: UserType) => {
-    setSelectedUser(user);
+  const handleUserClick = (clickedUser: UserType) => {
+    setSelectedUser(clickedUser);
     setIsUserModalOpen(true);
+  };
+
+  const handleDownload = async (doc: { url: string; name: string }) => {
+    setIsDownloading(doc.name);
+    try {
+      // Extract path from URL or use the url as path
+      const path = doc.url.includes('claim-documents/') 
+        ? doc.url.split('claim-documents/')[1] 
+        : doc.url;
+      
+      const { data, error } = await supabase.storage
+        .from('claim-documents')
+        .download(path);
+
+      if (error) throw error;
+
+      const blob = new Blob([data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.name;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Erreur lors du téléchargement');
+    } finally {
+      setIsDownloading(null);
+    }
   };
 
   const currentStatusIndex = statusFlow.indexOf(claim.status);
@@ -150,7 +192,7 @@ const ClaimDetail: React.FC = () => {
                 <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Lieu</p>
-                  <p className="font-medium">{claim.location}</p>
+                  <p className="font-medium">{claim.location || 'Non spécifié'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -218,12 +260,12 @@ const ClaimDetail: React.FC = () => {
         {/* Tabs */}
         <Tabs defaultValue="progression" className="space-y-4">
           <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview">Aperçu</TabsTrigger>
+            <TabsTrigger value="progression">Progression</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
             <TabsTrigger value="history">Historique</TabsTrigger>
             <TabsTrigger value="process">Processus</TabsTrigger>
             <TabsTrigger value="expertise">Expertise</TabsTrigger>
-            <TabsTrigger value="participants">Participants</TabsTrigger>
+            <TabsTrigger value="montants">Montants</TabsTrigger>
           </TabsList>
 
           {/* Onglet Progression détaillé */}
@@ -355,31 +397,46 @@ const ClaimDetail: React.FC = () => {
           <TabsContent value="documents">
             <Card>
               <CardHeader>
-                <CardTitle>Documents</CardTitle>
+                <CardTitle>Documents ({claim.documents.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {claim.documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Ajouté le {format(doc.uploadedAt, 'dd/MM/yyyy', { locale: fr })} par {doc.uploadedBy.name}
-                          </p>
+                {claim.documents.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Aucun document</p>
+                ) : (
+                  <div className="space-y-3">
+                    {claim.documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="h-5 w-5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Ajouté le {format(doc.uploadedAt, 'dd/MM/yyyy', { locale: fr })} par {doc.uploadedBy.name}
+                            </p>
+                          </div>
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDownload(doc)}
+                          disabled={isDownloading === doc.name}
+                        >
+                          {isDownloading === doc.name ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Download className="h-4 w-4 mr-2" />
+                              Télécharger
+                            </>
+                          )}
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Télécharger
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -391,29 +448,33 @@ const ClaimDetail: React.FC = () => {
                 <CardTitle>Historique des événements</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {claim.events.map((event, index) => (
-                    <div key={event.id} className="relative">
-                      {index < claim.events.length - 1 && (
-                        <div className="absolute left-5 top-12 w-0.5 h-full bg-border" />
-                      )}
-                      <div className="flex gap-4">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <MessageSquare className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="flex-1 pb-6">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-medium">{event.description}</p>
-                            <span className="text-sm text-muted-foreground">
-                              {format(event.date, 'dd/MM/yyyy HH:mm', { locale: fr })}
-                            </span>
+                {claim.events.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">Aucun événement</p>
+                ) : (
+                  <div className="space-y-4">
+                    {claim.events.map((event, index) => (
+                      <div key={event.id} className="relative">
+                        {index < claim.events.length - 1 && (
+                          <div className="absolute left-5 top-12 w-0.5 h-full bg-border" />
+                        )}
+                        <div className="flex gap-4">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <MessageSquare className="h-5 w-5 text-primary" />
                           </div>
-                          <p className="text-sm text-muted-foreground">Par {event.user.name}</p>
+                          <div className="flex-1 pb-6">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="font-medium">{event.description}</p>
+                              <span className="text-sm text-muted-foreground">
+                                {format(event.date, 'dd/MM/yyyy HH:mm', { locale: fr })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">Par {event.user.name}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -528,55 +589,6 @@ const ClaimDetail: React.FC = () => {
                     </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Onglet Participants */}
-          <TabsContent value="participants">
-            <Card>
-              <CardHeader>
-                <CardTitle>Participants</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Déclarant */}
-                  <div className="flex items-center gap-4 p-4 border rounded-lg">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                      {claim.declarant.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{claim.declarant.name}</p>
-                      <p className="text-sm text-muted-foreground">Déclarant</p>
-                    </div>
-                  </div>
-
-                  {/* Gestionnaire assigné */}
-                  {claim.assignedTo && (
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {claim.assignedTo.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{claim.assignedTo.name}</p>
-                        <p className="text-sm text-muted-foreground">Gestionnaire</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Expert */}
-                  {claim.expert && (
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-                        {claim.expert.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{claim.expert.name}</p>
-                        <p className="text-sm text-muted-foreground">Expert</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </CardContent>
             </Card>
           </TabsContent>
