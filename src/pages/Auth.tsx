@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import nsiaLogo from '@/assets/nsia-logo.png';
 
 const loginSchema = z.object({
@@ -34,7 +35,8 @@ type SignupFormData = z.infer<typeof signupSchema>;
 const Auth: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
+  const { signIn, signUp } = useSupabaseAuth();
+  const { isAuthenticated: appAuthenticated, isLoading: appAuthLoading } = useAuth();
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -45,10 +47,10 @@ const Auth: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      navigate('/dashboard');
+    if (!appAuthLoading && appAuthenticated) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [appAuthLoading, appAuthenticated, navigate]);
 
   const handleLogin = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -67,7 +69,6 @@ const Auth: React.FC = () => {
       }
 
       toast.success('Connexion réussie !');
-      navigate('/dashboard');
     } catch (error: any) {
       toast.error('Erreur lors de la connexion');
     } finally {
@@ -91,7 +92,6 @@ const Auth: React.FC = () => {
 
       toast.success('Compte créé avec succès !');
       toast.info('Vous pouvez maintenant vous connecter');
-      navigate('/dashboard');
     } catch (error: any) {
       toast.error('Erreur lors de la création du compte');
     } finally {
@@ -99,7 +99,7 @@ const Auth: React.FC = () => {
     }
   };
 
-  if (authLoading) {
+  if (appAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
