@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Search, User, FileText, TrendingUp, Mail, Phone, Building2, Calendar } from 'lucide-react';
+import { Search, User, FileText, TrendingUp, Mail, Phone, Building2, Calendar, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClaims } from '@/contexts/ClaimsContext';
+import { useUsers } from '@/hooks/useUsers';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { User as UserType, UserRole } from '@/types/claims';
-import { mockUsers } from '@/data/mockData';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -25,6 +25,7 @@ import { Link } from 'react-router-dom';
 const Participants: React.FC = () => {
     const { hasPermission } = useAuth();
     const { claims } = useClaims();
+    const { users, isLoading } = useUsers();
     const [search, setSearch] = useState('');
     const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -66,7 +67,7 @@ const Participants: React.FC = () => {
     };
 
     // Filtrer les utilisateurs
-    const filteredUsers = mockUsers.filter((user) => {
+    const filteredUsers = users.filter((user) => {
         const matchesSearch =
             user.name.toLowerCase().includes(search.toLowerCase()) ||
             user.email.toLowerCase().includes(search.toLowerCase());
@@ -75,8 +76,8 @@ const Participants: React.FC = () => {
     });
 
     // Statistiques globales
-    const totalParticipants = mockUsers.length;
-    const activeParticipants = mockUsers.filter(
+    const totalParticipants = users.length;
+    const activeParticipants = users.filter(
         (user) => getUserStats(user.id).total > 0
     ).length;
 
@@ -89,6 +90,14 @@ const Participants: React.FC = () => {
                         Vous n'avez pas les permissions nécessaires pour voir cette page.
                     </p>
                 </Card>
+            </div>
+        );
+    }
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
         );
     }
