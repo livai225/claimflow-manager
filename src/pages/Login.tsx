@@ -10,11 +10,7 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (!isLoading) {
-      if (isAuthenticated) {
-        navigate('/dashboard');
-      } else {
-        navigate('/auth');
-      }
+      navigate(isAuthenticated ? '/dashboard' : '/auth', { replace: true });
     }
   }, [isAuthenticated, isLoading, navigate]);
 
